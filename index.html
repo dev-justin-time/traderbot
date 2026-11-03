@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nexus AI Ultimate — Multi-Source · Backtest · DEX Arb · Flash Loans</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #070912; --bg-2: #0c1020; --panel: #111627; --panel-2: #171d33;
+    --border: #222a47; --text: #e6e9f2; --muted: #7b839e;
+    --accent: #6366f1; --accent-2: #8b5cf6; --green: #10b981;
+    --red: #ef4444; --yellow: #f59e0b; --cyan: #06b6d4; --pink: #ec4899;
+    --orange: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(ellipse at top, #131a33 0%, var(--bg) 60%);
+    color: var(--text); min-height: 100vh; padding: 14px; font-size: 13px;
+  }
+  .app { max-width: 1750px; margin: 0 auto; }
+  header {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    gap: 14px; padding: 14px 18px; margin-bottom: 14px;
+    background: linear-gradient(135deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--border); border-radius: 14px;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--pink) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800;
+    box-shadow: 0 0 24px rgba(139,92,246,0.5);
+  }
+  .logo h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo p { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; }
+  .stat { text-align: right; }
+  .stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .stat-value.pos { color: var(--green); } .stat-value.neg { color: var(--red); }
+  .api-indicator {
+    display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+    font-size: 10px; font-weight: 600;
+  }
+  .api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); padding: 7px 12px;
+    border-radius: 8px; cursor: pointer; font-size: 11px;
+    font-weight: 600; transition: all 0.15s;
+  }
+  button:hover { background: var(--border); }
+  button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; }
+  button.mev { background: linear-gradient(135deg, var(--pink), var(--red)); border: none; }
+  button.dex { background: linear-gradient(135deg, var(--cyan), var(--accent)); border: none; }
+  button.flash { background: linear-gradient(135deg, var(--orange), var(--yellow)); border: none; color: #000; }
+  button.danger { background: rgba(239,68,68,0.15); color: var(--red); border-color: rgba(239,68,68,0.3); }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .switch { position: relative; width: 36px; height: 20px; background: var(--panel-2); border-radius: 10px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); }
+  .switch.on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: white; border-radius: 50%; transition: 0.2s; }
+  .switch.on::after { left: 18px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 380px; gap: 14px; margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px;
+  }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .panel-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
+  .panel-subtitle { font-size: 10px; color: var(--muted); }
+  .badge { padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+  .badge.buy { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge.sell { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge.hold { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .badge.live { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge.live::before { content: '●'; margin-right: 4px; animation: pulse 1.5s infinite; }
+  .badge.mev { background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(239,68,68,0.2)); color: var(--pink); }
+  .badge.arb { background: rgba(6,182,212,0.15); color: var(--cyan); }
+  .badge.flash { background: rgba(249,115,22,0.15); color: var(--orange); }
+  .badge.hot { background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(249,115,22,0.3)); color: var(--orange); animation: pulse 1s infinite; }
+
+  .coin-tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; max-height: 90px; overflow-y: auto; }
+  .coin-tabs::-webkit-scrollbar { height: 4px; width: 4px; }
+  .coin-tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .coin-tab {
+    padding: 5px 10px; border-radius: 7px; cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--border);
+    font-size: 11px; font-weight: 600; transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .coin-tab:hover { border-color: var(--accent); }
+  .coin-tab.active { background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2)); border-color: var(--accent); }
+  .coin-tab img { width: 14px; height: 14px; border-radius: 50%; }
+  .coin-tab .chg { font-size: 9px; }
+  .coin-tab .chg.pos { color: var(--green); }
+  .coin-tab .chg.neg { color: var(--red); }
+
+  .chart-wrap { position: relative; height: 300px; }
+  .price-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
+  .price-big { font-size: 24px; font-weight: 700; }
+  .price-chg { font-size: 13px; font-weight: 600; }
+
+  .ai-panel { display: flex; flex-direction: column; gap: 12px; }
+  .gauge-wrap { text-align: center; padding: 6px 0; }
+  .gauge { position: relative; width: 170px; height: 85px; margin: 0 auto; overflow: hidden; }
+  .gauge-bg, .gauge-fill {
+    position: absolute; width: 170px; height: 170px;
+    border-radius: 50%; border: 13px solid var(--panel-2);
+    border-bottom-color: transparent; border-left-color: transparent;
+    transform: rotate(225deg); top: 0; left: 0;
+  }
+  .gauge-fill { border-color: transparent; transition: clip-path 0.6s; }
+  .gauge-value { font-size: 28px; font-weight: 800; margin-top: 6px; }
+  .gauge-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .verdict { text-align: center; padding: 8px; border-radius: 10px; font-weight: 700; font-size: 13px; }
+  .verdict.buy { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05)); color: var(--green); }
+  .verdict.sell { background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05)); color: var(--red); }
+  .verdict.hold { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05)); color: var(--yellow); }
+
+  .signal-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+  .signal-list::-webkit-scrollbar { width: 4px; }
+  .signal-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .signal {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 10px; background: var(--panel-2); border-radius: 7px;
+    border: 1px solid var(--border); font-size: 11px;
+  }
+  .signal-name { font-weight: 600; }
+  .signal-val { color: var(--muted); font-family: 'SF Mono', monospace; font-size: 10px; }
+  .signal-tag { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .signal-tag.bull { background: rgba(16,185,129,0.15); color: var(--green); }
+  .signal-tag.bear { background: rgba(239,68,68,0.15); color: var(--red); }
+  .signal-tag.neut { background: rgba(123,131,158,0.15); color: var(--muted); }
+
+  .ai-commentary {
+    padding: 10px; background: var(--panel-2); border-radius: 9px;
+    border-left: 3px solid var(--accent); font-size: 11px; line-height: 1.55;
+  }
+  .ai-commentary .ai-tag {
+    display: inline-block; padding: 2px 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 4px; font-size: 8px; font-weight: 700; letter-spacing: 1px;
+    margin-right: 5px; vertical-align: middle;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { text-align: left; padding: 6px 8px; color: var(--muted); font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 8px; border-bottom: 1px solid rgba(35,43,69,0.5); }
+  tr:last-child td { border-bottom: none; }
+  .coin-cell { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .coin-cell img { width: 18px; height: 18px; border-radius: 50%; }
+  .mono { font-family: 'SF Mono', Consolas, monospace; }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab { padding: 8px 14px; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; transition: 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Backtest */
+  .bt-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .bt-controls select, .bt-controls input {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 7px 10px; border-radius: 7px; font-size: 11px; font-family: inherit;
+  }
+  .bt-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 14px; }
+  .bt-stat { padding: 10px; background: var(--panel-2); border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+  .bt-stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .bt-stat-value { font-size: 16px; font-weight: 700; margin-top: 3px; }
+  .bt-chart-wrap { position: relative; height: 260px; }
+
+  /* DEX Arb */
+  .dex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .dex-card {
+    padding: 12px; background: var(--panel-2); border-radius: 9px;
+    border: 1px solid var(--border);
+  }
+  .dex-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .dex-name { font-size: 12px; font-weight: 700; }
+  .dex-tvl { font-size: 10px; color: var(--muted); }
+  .dex-price { font-size: 18px; font-weight: 700; font-family: 'SF Mono', monospace; }
+  .arb-feed { max-height: 380px; overflow-y: auto; }
+  .arb-feed::-webkit-scrollbar { width: 5px; }
+  .arb-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .arb-item {
+    padding: 10px 12px; background: var(--panel-2); border-radius: 8px;
+    margin-bottom: 6px; border-left: 3px solid var(--cyan); font-size: 11px;
+  }
+  .arb-item.hot { border-left-color: var(--orange); background: linear-gradient(90deg, rgba(249,115,22,0.08), var(--panel-2)); }
+  .arb-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .arb-pair { font-weight: 700; font-size: 12px; }
+  .arb-spread { font-weight: 700; font-family: 'SF Mono', monospace; }
+  .arb-route { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .arb-profit { font-size: 11px; font-weight: 700; margin-top: 3px; }
+
+  /* Flash Loan */
+  .fl-builder { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .fl-form { display: flex; flex-direction: column; gap: 10px; }
+  .fl-field { display: flex; flex-direction: column; gap: 4px; }
+  .fl-field label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .fl-field select, .fl-field input {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 9px 12px; border-radius: 8px; font-size: 12px; font-family: inherit;
+  }
+  .fl-summary {
+    padding: 14px; background: var(--panel-2); border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .fl-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; border-bottom: 1px solid rgba(35,43,69,0.5); }
+  .fl-row:last-child { border-bottom: none; }
+  .fl-row.total { font-size: 14px; font-weight: 700; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 6px; }
+  .fl-steps { margin-top: 12px; }
+  .fl-step {
+    display: flex; gap: 10px; padding: 8px 10px; background: var(--panel);
+    border-radius: 7px; margin-bottom: 5px; font-size: 11px; align-items: center;
+  }
+  .fl-step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--orange), var(--yellow));
+    color: #000; font-weight: 800; font-size: 11px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .fl-step-text { flex: 1; }
+  .fl-step-val { font-family: 'SF Mono', monospace; color: var(--muted); font-size: 10px; }
+  .fl-verdict {
+    padding: 10px; border-radius: 8px; text-align: center; margin-top: 10px;
+    font-weight: 700; font-size: 12px;
+  }
+  .fl-verdict.profitable { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05)); color: var(--green); }
+  .fl-verdict.unprofitable { background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05)); color: var(--red); }
+
+  /* Data/CSV */
+  .data-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .data-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .data-stat { padding: 10px; background: var(--panel-2); border-radius: 8px; border: 1px solid var(--border); }
+  .data-stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .data-stat-value { font-size: 15px; font-weight: 700; margin-top: 3px; }
+  .csv-preview {
+    max-height: 300px; overflow: auto; background: var(--panel-2);
+    border-radius: 8px; padding: 10px; font-family: 'SF Mono', monospace;
+    font-size: 10px; line-height: 1.6; border: 1px solid var(--border);
+  }
+  .csv-preview::-webkit-scrollbar { width: 5px; height: 5px; }
+  .csv-preview::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .empty { text-align: center; padding: 24px; color: var(--muted); font-size: 11px; }
+  .loader { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .trade-log { max-height: 340px; overflow-y: auto; }
+  .trade-log::-webkit-scrollbar { width: 5px; }
+  .trade-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .trade-item {
+    padding: 8px 10px; background: var(--panel-2); border-radius: 7px;
+    margin-bottom: 6px; border-left: 3px solid var(--accent); font-size: 11px;
+  }
+  .trade-item.buy { border-left-color: var(--green); }
+  .trade-item.sell { border-left-color: var(--red); }
+  .trade-item.mev { border-left-color: var(--pink); }
+  .trade-head { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .trade-action { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.8px; }
+  .trade-time { color: var(--muted); font-size: 9px; }
+  .trade-reason { color: var(--muted); font-size: 10px; line-height: 1.4; margin-top: 3px; font-style: italic; }
+
+  .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .strat-card { padding: 10px; background: var(--panel-2); border-radius: 8px; border: 1px solid var(--border); }
+  .strat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .strat-name { font-size: 11px; font-weight: 700; }
+  .strat-val { font-size: 10px; color: var(--muted); font-family: 'SF Mono', monospace; }
+  .strat-bar { height: 4px; background: var(--panel); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .strat-bar-fill { height: 100%; transition: width 0.4s; }
+
+  @media (max-width: 1200px) {
+    .grid, .grid-3, .grid-2, .dex-grid, .fl-builder { grid-template-columns: 1fr; }
+    .bt-stats { grid-template-columns: repeat(3, 1fr); }
+    .data-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body
+
+  <nav class="topbar">
+    <div class="brand">Crypto Trader</div>
+    <div class="links">
+      <a href="index.html" class="active">Home</a>
+      <a href="strategy.html">Strategy</a>
+      <a href="backtest.html">Backtest</a>
+      <a href="live.html">Live</a>
+      <a href="agent.html">Agent</a>
+      <a href="connection.html">Connection</a>
+      <a href="settings.html">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Overview</h1>
+      <p>Lightweight multi-page crypto trading assistant demo. Browse topics to configure strategies, backtest, run live simulations, and interact with an agent in its dedicated page.</p>
+      <div class="grid">
+        <a class="card" href="strategy.html">
+          <h3>Strategy</h3><p>Define entry/exit rules and indicators.</p>
+        </a>
+        <a class="card" href="backtest.html">
+          <h3>Backtest</h3><p>Run historical simulations quickly.</p>
+        </a>
+        <a class="card" href="live.html">
+          <h3>Live</h3><p>Simulated paper trading with streaming ticks.</p>
+        </a>
+        <a class="card" href="agent.html">
+          <h3>Agent</h3><p>Chat-driven assistant that helps create strategies.</p>
+        </a>
+        <a class="card" href="settings.html">
+          <h3>Settings</h3><p>API keys, risk and money management.</p>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/errors.js"></script>
+  <script type="module" src="js/nav.js"></script>
+  <script type="module" src="js/index.js"></script>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">N</div>
+      <div>
+        <h1>Nexus AI Ultimate</h1>
+        <p>Multi-Source · Backtest · DEX Arb · Flash Loans</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Portfolio</div>
+        <div class="stat-value mono" id="statPortfolio">$10,000.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Cash</div>
+        <div class="stat-value mono" id="statCash">$10,000.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Trading P&L</div>
+        <div class="stat-value mono" id="statPnL">$0.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">MEV + Arb</div>
+        <div class="stat-value mono" id="statMev" style="color:var(--pink)">$0.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Return</div>
+        <div class="stat-value mono" id="statReturn">0.00%</div>
+      </div>
+      <div class="api-indicator">
+        <span class="api-dot" id="apiDot"></span>
+        <span id="apiLabel">CoinGecko</span>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="toggle"><span>Auto-Trade</span><div class="switch on" id="autoToggle"></div></div>
+      <div class="toggle"><span>Flashbots</span><div class="switch on" id="mevToggle"></div></div>
+      <div class="toggle"><span>CSV Log</span><div class="switch on" id="csvToggle"></div></div>
+      <button id="addNodeBtn" class="dex" title="Search & connect to sibling by room hash">➕ Add Node</button>
+      <button id="copyHashBtn" class="primary" title="Copy room hash"># Copy Hash</button>
+      <!-- Room hash display -->
+      <div id="roomHashDisplay" class="badge" style="margin-left:8px;background:rgba(99,102,241,0.08);color:var(--accent);font-weight:700">#—</div>
+
+      <!-- Wallet connect -->
+      <button id="walletBtn" class="primary" title="Connect Wallet">🔌 Connect Wallet</button>
+      <div id="walletAddr" class="badge" style="margin-left:8px;background:rgba(16,185,129,0.06);color:var(--green);font-weight:700">—</div>
+
+      <button id="analyzeBtn" class="primary">⟳ Analyze</button>
+      <button id="resetBtn" class="danger">Reset</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Market Analysis · Top 20</div>
+          <div class="panel-subtitle">Multi-source price feed · 10 indicators · AI synthesis</div>
+        </div>
+        <span class="badge live">LIVE</span>
+      </div>
+      <div class="coin-tabs" id="coinTabs"></div>
+      <div class="price-head">
+        <div>
+          <span class="price-big mono" id="priceBig">—</span>
+          <span class="price-chg" id="priceChg"></span>
+        </div>
+        <div class="panel-subtitle mono" id="priceTime">—</div>
+      </div>
+      <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+    </div>
+
+    <div class="panel ai-panel">
+      <div class="panel-header">
+        <div class="panel-title">AI Signal Engine</div>
+        <div class="panel-subtitle" id="aiCoinLabel">—</div>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge"><div class="gauge-bg"></div><div class="gauge-fill" id="gaugeFill"></div></div>
+        <div class="gauge-value" id="gaugeValue">0</div>
+        <div class="gauge-label">Composite Signal</div>
+      </div>
+      <div class="verdict hold" id="verdict">ANALYZING…</div>
+      <div class="signal-list" id="signalList"></div>
+      <div class="ai-commentary">
+        <span class="ai-tag">AI</span>
+        <span id="aiText">Initializing…</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="tabs">
+      <div class="tab active" data-tab="strategies">📊 Strategies</div>
+      <div class="tab" data-tab="portfolio">💼 Portfolio</div>
+      <div class="tab" data-tab="watchlist">👁 Watchlist</div>
+      <div class="tab" data-tab="trades">📜 Trades</div>
+      <div class="tab" data-tab="backtest">🔬 Backtest</div>
+      <div class="tab" data-tab="dexarb">💱 DEX Arb</div>
+      <div class="tab" data-tab="flashloan">⚡ Flash Loans</div>
+      <div class="tab" data-tab="data">📁 Data / CSV</div>
+    </div>
+
+    <div class="tab-content active" id="tab-strategies">
+      <div class="strat-grid" id="stratGrid"></div>
+    </div>
+
+    <div class="tab-content" id="tab-portfolio">
+      <table>
+        <thead><tr><th>Asset</th><th>Qty</th><th>Avg Cost</th><th>Price</th><th>Value</th><th>P&L</th></tr></thead>
+        <tbody id="holdingsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="tab-content" id="tab-watchlist">
+      <table>
+        <thead><tr><th>Asset</th><th>Price</th><th>24h</th><th>Source</th><th>Signal</th></tr></thead>
+        <tbody id="watchlistBody"></tbody>
+      </table>
+    </div>
+
+    <div class="tab-content" id="tab-trades">
+      <div class="trade-log" id="tradeLog">
+        <div class="empty">No trades yet.</div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-backtest">
+      <div class="bt-controls">
+        <label style="font-size:11px;color:var(--muted);">Asset:</label>
+        <select id="btAsset"></select>
+        <label style="font-size:11px;color:var(--muted);">Strategy:</label>
+        <select id="btStrategy">
+          <option value="composite">AI Composite (all signals)</option>
+          <option value="rsi">RSI Mean Reversion</option>
+          <option value="macd">MACD Momentum</option>
+          <option value="breakout">Donchian Breakout</option>
+          <option value="bollinger">Bollinger Bounce</option>
+        </select>
+        <label style="font-size:11px;color:var(--muted);">Initial Capital:</label>
+        <input type="number" id="btCapital" value="10000" style="width:100px;">
+        <button id="btRun" class="primary">▶ Run Backtest</button>
+        <button id="btExport" class="dex">⬇ Export CSV</button>
+      </div>
+      <div class="bt-stats" id="btStats"></div>
+      <div class="bt-chart-wrap"><canvas id="btChart"></canvas></div>
+    </div>
+
+    <div class="tab-content" id="tab-dexarb">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">DEX Arbitrage Monitor</div>
+          <div class="panel-subtitle">Real-time price discrepancies across 5 DEXes</div>
+        </div>
+        <span class="badge arb" id="arbBadge">SCANNING</span>
+      </div>
+      <div class="dex-grid" id="dexGrid"></div>
+      <div class="panel-header" style="margin-top:10px;">
+        <div class="panel-title">🔥 Profitable Opportunities</div>
+        <div class="panel-subtitle" id="arbCount">0 active</div>
+      </div>
+      <div class="arb-feed" id="arbFeed">
+        <div class="empty">Scanning for arbitrage opportunities…</div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-flashloan">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Flash Loan Trade Builder</div>
+          <div class="panel-subtitle">Aave-style atomic arbitrage · Zero collateral required</div>
+        </div>
+        <span class="badge flash">BUILDER</span>
+      </div>
+      <div class="fl-builder">
+        <div class="fl-form">
+          <div class="fl-field">
+            <label>Borrow Asset</label>
+            <select id="flAsset"></select>
+          </div>
+          <div class="fl-field">
+            <label>Loan Amount (USD)</label>
+            <input type="number" id="flAmount" value="50000" min="1000" step="1000">
+          </div>
+          <div class="fl-field">
+            <label>Buy On (cheap)</label>
+            <select id="flBuyDex"></select>
+          </div>
+          <div class="fl-field">
+            <label>Sell On (expensive)</label>
+            <select id="flSellDex"></select>
+          </div>
+          <div class="fl-field">
+            <label>Gas Price (gwei)</label>
+            <input type="number" id="flGas" value="35" min="1" step="1">
+          </div>
+          <button id="flBuild" class="flash">⚡ Build & Simulate</button>
+        </div>
+        <div>
+          <div class="fl-summary" id="flSummary">
+            <div class="empty">Configure parameters and click Build</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-data">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Data Pipeline & CSV Export</div>
+          <div class="panel-subtitle">Continuous logging from 4 rotating data sources</div>
+        </div>
+      </div>
+      <div class="data-stats" id="dataStats"></div>
+      <div class="data-actions">
+        <button id="dlPrices" class="primary">⬇ Price History CSV</button>
+        <button id="dlTrades" class="dex">⬇ Trades CSV</button>
+        <button id="dlBundles" class="mev">⬇ MEV Bundles CSV</button>
+        <button id="dlBacktest" class="flash">⬇ Backtest Results CSV</button>
+        <button id="clearLog" class="danger">🗑 Clear Log</button>
+      </div>
+      <div class="panel-header">
+        <div class="panel-title">Live CSV Preview (last 50 ticks)</div>
+        <div class="panel-subtitle mono" id="csvTickInfo">—</div>
+      </div>
+      <div class="csv-preview" id="csvPreview">Waiting for data…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   NEXUS AI ULTIMATE
+   Multi-Source · Backtest · DEX Arb · Flash Loans · CSV
+   ============================================================ */
+
+const COINS = [
+  { id: 'bitcoin',       symbol: 'BTC',  name: 'Bitcoin',      paprika: 'btc-bitcoin',   binance: 'BTCUSDT',   coincap: 'bitcoin' },
+  { id: 'ethereum',      symbol: 'ETH',  name: 'Ethereum',     paprika: 'eth-ethereum',  binance: 'ETHUSDT',   coincap: 'ethereum' },
+  { id: 'binancecoin',   symbol: 'BNB',  name: 'BNB',          paprika: 'bnb-binance-coin', binance: 'BNBUSDT', coincap: 'binance-coin' },
+  { id: 'solana',        symbol: 'SOL',  name: 'Solana',       paprika: 'sol-solana',    binance: 'SOLUSDT',   coincap: 'solana' },
+  { id: 'ripple',        symbol: 'XRP',  name: 'XRP',          paprika: 'xrp-xrp',       binance: 'XRPUSDT',   coincap: 'ripple' },
+  { id: 'cardano',       symbol: 'ADA',  name: 'Cardano',      paprika: 'ada-cardano',   binance: 'ADAUSDT',   coincap: 'cardano' },
+  { id: 'dogecoin',      symbol: 'DOGE', name: 'Dogecoin',     paprika: 'doge-dogecoin', binance: 'DOGEUSDT',  coincap: 'dogecoin' },
+  { id: 'avalanche-2',   symbol: 'AVAX', name: 'Avalanche',    paprika: 'avax-avalanche', binance: 'AVAXUSDT', coincap: 'avalanche' },
+  { id: 'polkadot',      symbol: 'DOT',  name: 'Polkadot',     paprika: 'dot-polkadot',  binance: 'DOTUSDT',   coincap: 'polkadot' },
+  { id: 'chainlink',     symbol: 'LINK', name: 'Chainlink',    paprika: 'link-chainlink', binance: 'LINKUSDT', coincap: 'chainlink' },
+  { id: 'matic-network', symbol: 'MATIC', name: 'Polygon',     paprika: 'matic-polygon', binance: 'MATICUSDT', coincap: 'polygon' },
+  { id: 'uniswap',       symbol: 'UNI',  name: 'Uniswap',      paprika: 'uni-uniswap',   binance: 'UNIUSDT',   coincap: 'uniswap' },
+  { id: 'litecoin',      symbol: 'LTC',  name: 'Litecoin',     paprika: 'ltc-litecoin',  binance: 'LTCUSDT',   coincap: 'litecoin' },
+  { id: 'cosmos',        symbol: 'ATOM', name: 'Cosmos',       paprika: 'atom-cosmos',   binance: 'ATOMUSDT',  coincap: 'cosmos' },
+  { id: 'ethereum-classic', symbol: 'ETC', name: 'Ethereum Classic', paprika: 'etc-ethereum-classic', binance: 'ETCUSDT', coincap: 'ethereum-classic' },
+  { id: 'stellar',       symbol: 'XLM',  name: 'Stellar',      paprika: 'xlm-stellar',   binance: 'XLMUSDT',   coincap: 'stellar' },
+  { id: 'near',          symbol: 'NEAR', name: 'NEAR',         paprika: 'near-protocol', binance: 'NEARUSDT',  coincap: 'near-protocol' },
+  { id: 'aptos',         symbol: 'APT',  name: 'Aptos',        paprika: 'apt-aptos',     binance: 'APTUSDT',   coincap: 'aptos' },
+  { id: 'arbitrum',      symbol: 'ARB',  name: 'Arbitrum',     paprika: 'arb-arbitrum',  binance: 'ARBUSDT',   coincap: 'arbitrum' },
+  { id: 'optimism',      symbol: 'OP',   name: 'Optimism',     paprika: 'op-optimism',   binance: 'OPUSDT',    coincap: 'optimism' },
+];
+
+const DATA_SOURCES = ['coingecko', 'coincap', 'binance', 'coinpaprika'];
+const STARTING_CASH = 10000;
+const REFRESH_MS = 25 * 1000;
+const ANALYSIS_MS = 2 * 60 * 1000;
+const BUNDLE_MS = 45 * 1000;
+const DEX_MS = 8 * 1000;
+const TRADE_COOLDOWN_MS = 60 * 1000;
+const HISTORY_FETCH_DELAY_MS = 1800;
+const MAX_PRICE_LOG = 10000;
+
+const DEXES = [
+  { id: 'uniswap',    name: 'Uniswap V3',  color: '#ff007a', spread: 0.0008, liquidity: 500000000 },
+  { id: 'sushi',      name: 'SushiSwap',   color: '#fa52a0', spread: 0.0018, liquidity: 120000000 },
+  { id: 'pancake',    name: 'PancakeSwap', color: '#d1884f', spread: 0.0025, liquidity: 80000000 },
+  { id: 'curve',      name: 'Curve',       color: '#aaf0d8', spread: 0.0004, liquidity: 900000000 },
+  { id: 'oneinch',    name: '1inch',       color: '#1f6feb', spread: 0.0006, liquidity: 300000000 },
+];
+
+const state = {
+  cash: STARTING_CASH,
+  holdings: {},
+  trades: [],
+  prices: {},
+  priceSources: {},   // track which API delivered each price
+  history: {},
+  signals: {},
+  strategies: {},
+  bundles: [],
+  mevStats: { sent: 0, included: 0, profit: 0 },
+  dexPrices: {},      // { BTC: { uniswap: price, sushi: price, ... } }
+  arbOpportunities: [],
+  priceLog: [],       // continuous CSV log
+  backtestResults: null,
+  selected: 'BTC',
+  autoTrade: true,
+  mevEnabled: true,
+  csvEnabled: true,
+  activeSourceIdx: 0,
+  lastTradeAt: {},
+  charts: { price: null, bt: null },
+  apiStats: { coingecko: 0, coincap: 0, binance: 0, coinpaprika: 0, failures: 0 },
+};
+
+/* ---------- Persistence ---------- */
+function saveState() {
+  const s = {
+    cash: state.cash, holdings: state.holdings, trades: state.trades,
+    autoTrade: state.autoTrade, mevEnabled: state.mevEnabled, csvEnabled: state.csvEnabled,
+    mevStats: state.mevStats, bundles: state.bundles.slice(0, 50),
+    priceLog: state.priceLog.slice(-2000),
+    savedAt: Date.now(),
+  };
+  try { localStorage.setItem('nexus_ultimate_state', JSON.stringify(s)); } catch (e) {}
+}
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('nexus_ultimate_state'));
+    if (!s) return;
+    state.cash = s.cash ?? STARTING_CASH;
+    state.holdings = s.holdings ?? {};
+    state.trades = s.trades ?? [];
+    state.autoTrade = s.autoTrade ?? true;
+    state.mevEnabled = s.mevEnabled ?? true;
+    state.csvEnabled = s.csvEnabled ?? true;
+    state.mevStats = s.mevStats ?? { sent: 0, included: 0, profit: 0 };
+    state.bundles = s.bundles ?? [];
+    state.priceLog = s.priceLog ?? [];
+  } catch (e) {}
+}
+
+/* ---------- Technical Indicators ---------- */
+function sma(arr, p) { if (arr.length < p) return null; return arr.slice(-p).reduce((a,b)=>a+b,0)/p; }
+function ema(arr, p) {
+  if (arr.length < p) return null;
+  const k = 2/(p+1); let e = arr.slice(0,p).reduce((a,b)=>a+b,0)/p;
+  for (let i=p; i<arr.length; i++) e = arr[i]*k + e*(1-k);
+  return e;
+}
+function rsi(arr, p=14) {
+  if (arr.length < p+1) return null;
+  let g=0, l=0;
+  for (let i=arr.length-p; i<arr.length; i++) {
+    const d = arr[i]-arr[i-1]; if (d>=0) g+=d; else l-=d;
+  }
+  if (l===0) return 100;
+  return 100 - (100/(1 + (g/p)/(l/p)));
+}
+function macd(arr) {
+  if (arr.length < 35) return null;
+  const e12 = ema(arr,12), e26 = ema(arr,26);
+  if (e12===null||e26===null) return null;
+  const line = e12-e26;
+  const macdArr = [];
+  for (let i=26; i<=arr.length; i++) {
+    const sl = arr.slice(0,i);
+    macdArr.push(ema(sl,12)-ema(sl,26));
+  }
+  const signal = ema(macdArr,9);
+  return { line, signal, hist: line-signal };
+}
+function bollinger(arr, p=20, m=2) {
+  if (arr.length < p) return null;
+  const sl = arr.slice(-p);
+  const mean = sl.reduce((a,b)=>a+b,0)/p;
+  const v = sl.reduce((a,b)=>a+Math.pow(b-mean,2),0)/p;
+  return { middle: mean, upper: mean+m*Math.sqrt(v), lower: mean-m*Math.sqrt(v) };
+}
+function volatility(arr, p=20) {
+  if (arr.length < p+1) return null;
+  const ret = [];
+  for (let i=arr.length-p; i<arr.length; i++) ret.push((arr[i]-arr[i-1])/arr[i-1]);
+  const mean = ret.reduce((a,b)=>a+b,0)/ret.length;
+  const v = ret.reduce((a,b)=>a+Math.pow(b-mean,2),0)/ret.length;
+  return Math.sqrt(v) * Math.sqrt(365) * 100;
+}
+function zscore(arr, p=20) {
+  if (arr.length < p) return null;
+  const sl = arr.slice(-p);
+  const mean = sl.reduce((a,b)=>a+b,0)/p;
+  const v = sl.reduce((a,b)=>a+Math.pow(b-mean,2),0)/p;
+  const sd = Math.sqrt(v);
+  if (sd === 0) return 0;
+  return (arr[arr.length-1] - mean) / sd;
+}
+function donchian(arr, p=20) {
+  if (arr.length < p) return null;
+  const sl = arr.slice(-p);
+  return { high: Math.max(...sl), low: Math.min(...sl) };
+}
+
+/* ---------- Multi-Source Price Fetching ---------- */
+/* Helper: retrieve API key from localStorage and return headers if present */
+function getApiHeaders() {
+  try {
+    const raw = localStorage.getItem('trader_settings');
+    if (!raw) return {};
+    const settings = JSON.parse(raw);
+    const key = settings?.apiKey?.trim();
+    if (!key) return {};
+    return { 'X-API-Key': key };
+  } catch (e) {
+    return {};
+  }
+}
+
+async function fetchCoinGecko() {
+  const ids = COINS.map(c => c.id).join(',');
+  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&price_change_percentage=24h`;
+  const headers = getApiHeaders();
+  const res = await fetch(url, headers && Object.keys(headers).length ? { headers } : undefined);
+  if (!res.ok) throw new Error('CoinGecko ' + res.status);
+  const data = await res.json();
+  const out = {};
+  data.forEach(d => {
+    out[d.symbol.toUpperCase()] = {
+      price: d.current_price,
+      change24h: d.price_change_percentage_24h || 0,
+      image: d.image, name: d.name,
+    };
+  });
+  return out;
+}
+
+async function fetchCoinCap() {
+  const ids = COINS.map(c => c.coincap).join(',');
+  const url = `https://api.coincap.io/v2/assets?ids=${ids}`;
+  const headers = getApiHeaders();
+  const res = await fetch(url, headers && Object.keys(headers).length ? { headers } : undefined);
+  if (!res.ok) throw new Error('CoinCap ' + res.status);
+  const json = await res.json();
+  const out = {};
+  json.data.forEach(d => {
+    const coin = COINS.find(c => c.coincap === d.id);
+    if (!coin) return;
+    out[coin.symbol] = {
+      price: parseFloat(d.priceUsd),
+      change24h: parseFloat(d.changePercent24Hr) || 0,
+      image: `https://assets.coincap.io/assets/icons/${coin.symbol.toLowerCase()}@2x.png`,
+      name: d.name,
+    };
+  });
+  return out;
+}
+
+async function fetchBinance() {
+  const symbols = JSON.stringify(COINS.map(c => c.binance));
+  const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbols)}`;
+  const headers = getApiHeaders();
+  const res = await fetch(url, headers && Object.keys(headers).length ? { headers } : undefined);
+  if (!res.ok) throw new Error('Binance ' + res.status);
+  const data = await res.json();
+  const out = {};
+  data.forEach(d => {
+    const coin = COINS.find(c => c.binance === d.symbol);
+    if (!coin) return;
+    out[coin.symbol] = {
+      price: parseFloat(d.lastPrice),
+      change24h: parseFloat(d.priceChangePercent),
+      image: `https://assets.coincap.io/assets/icons/${coin.symbol.toLowerCase()}@2x.png`,
+      name: coin.name,
+    };
+  });
+  return out;
+}
+
+async function fetchCoinPaprika() {
+  // Fetch top 100 and filter (more efficient than individual calls)
+  const url = `https://api.coinpaprika.com/v1/tickers`;
+  const headers = getApiHeaders();
+  const res = await fetch(url, headers && Object.keys(headers).length ? { headers } : undefined);
+  if (!res.ok) throw new Error('CoinPaprika ' + res.status);
+  const data = await res.json();
+  const byId = {};
+  data.forEach(t => byId[t.id] = t);
+  const out = {};
+  COINS.forEach(c => {
+    const t = byId[c.paprika];
+    if (!t) return;
+    out[c.symbol] = {
+      price: t.quotes.USD.price,
+      change24h: t.quotes.USD.percent_change_24h || 0,
+      image: `https://static.coinpaprika.com/coin/${c.paprika}/logo.png`,
+      name: t.name,
+    };
+  });
+  return out;
+}
+
+const FETCHERS = {
+  coingecko: fetchCoinGecko,
+  coincap: fetchCoinCap,
+  binance: fetchBinance,
+  coinpaprika: fetchCoinPaprika,
+};
+
+async function fetchPricesWithRotation() {
+  // Try current source, then rotate on failure
+  const tried = [];
+  for (let i = 0; i < DATA_SOURCES.length; i++) {
+    const src = DATA_SOURCES[(state.activeSourceIdx + i) % DATA_SOURCES.length];
+    tried.push(src);
+    try {
+      const data = await FETCHERS[src]();
+      if (Object.keys(data).length < 5) throw new Error('Sparse response');
+      state.activeSourceIdx = (state.activeSourceIdx + i) % DATA_SOURCES.length;
+      state.apiStats[src]++;
+      // Merge: keep existing images if new source doesn't have them
+      for (const sym in data) {
+        if (!data[sym].image && state.prices[sym]?.image) {
+          data[sym].image = state.prices[sym].image;
+        }
+        state.priceSources[sym] = src;
+      }
+      state.prices = data;
+      logPriceTick(src);
+      updateApiIndicator(src, true);
+      return src;
+    } catch (e) {
+      console.warn(`${src} failed:`, e.message);
+      state.apiStats.failures++;
+    }
+  }
+  updateApiIndicator('all-failed', false);
+  return null;
+}
+
+function updateApiIndicator(source, ok) {
+  const label = document.getElementById('apiLabel');
+  const dot = document.getElementById('apiDot');
+  const names = { coingecko: 'CoinGecko', coincap: 'CoinCap', binance: 'Binance', coinpaprika: 'CoinPaprika' };
+  label.textContent = ok ? (names[source] || source) : 'Reconnecting…';
+  dot.style.background = ok ? 'var(--green)' : 'var(--red)';
+}
+
+/* ---------- CSV Logging ---------- */
+function logPriceTick(source) {
+  if (!state.csvEnabled) return;
+  const ts = Date.now();
+  for (const sym in state.prices) {
+    const p = state.prices[sym];
+    state.priceLog.push({
+      t: ts, sym, price: p.price, chg: p.change24h, src: source,
+    });
+  }
+  if (state.priceLog.length > MAX_PRICE_LOG) {
+    state.priceLog = state.priceLog.slice(-MAX_PRICE_LOG);
+  }
+}
+
+function downloadCSV(filename, rows) {
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- DEX Price Simulation ---------- */
+function updateDexPrices() {
+  for (const sym in state.prices) {
+    const base = state.prices[sym].price;
+    if (!state.dexPrices[sym]) state.dexPrices[sym] = {};
+    DEXES.forEach(dex => {
+      // Random walk around base with dex-specific spread
+      const prev = state.dexPrices[sym][dex.id] || base;
+      const drift = (base - prev) * 0.3; // mean-revert to base
+      const noise = (Math.random() - 0.5) * 2 * dex.spread * base;
+      // Occasional larger dislocations (liquidity events)
+      const shock = Math.random() < 0.03 ? (Math.random() - 0.5) * dex.spread * base * 8 : 0;
+      state.dexPrices[sym][dex.id] = prev + drift + noise + shock;
+    });
+  }
+  detectArbitrage();
+}
+
+function detectArbitrage() {
+  const opps = [];
+  for (const sym in state.dexPrices) {
+    const prices = state.dexPrices[sym];
+    const entries = Object.entries(prices);
+    if (entries.length < 2) continue;
+    // Find min and max
+    let minDex = entries[0], maxDex = entries[0];
+    for (const e of entries) {
+      if (e[1] < minDex[1]) minDex = e;
+      if (e[1] > maxDex[1]) maxDex = e;
+    }
+    const spread = (maxDex[1] - minDex[1]) / minDex[1];
+    if (spread > 0.0015) { // >0.15% is potentially profitable after fees
+      const minName = DEXES.find(d => d.id === minDex[0])?.name || minDex[0];
+      const maxName = DEXES.find(d => d.id === maxDex[0])?.name || maxDex[0];
+      // Estimate profit on $10k trade
+      const tradeSize = 10000;
+      const gross = tradeSize * spread;
+      const fee = tradeSize * 0.003 + tradeSize * 0.0005 + 15; // swap + protocol + gas
+      const net = gross - fee;
+      opps.push({
+        symbol: sym,
+        buyDex: minDex[0], buyName: minName, buyPrice: minDex[1],
+        sellDex: maxDex[0], sellName: maxName, sellPrice: maxDex[1],
+        spread, gross, fee, net, hot: net > 50,
+      });
+    }
+  }
+  opps.sort((a,b) => b.net - a.net);
+  state.arbOpportunities = opps.slice(0, 20);
+}
+
+/* ---------- Strategy Signals ---------- */
+function computeStrategies(symbol) {
+  const prices = state.history[symbol];
+  if (!prices || prices.length < 60) return null;
+  const current = prices[prices.length - 1];
+  const strats = {};
+
+  const z = zscore(prices, 20);
+  if (z !== null) {
+    let s=0,t='neut',l='';
+    if (z<-1.5){s=20;t='bull';l='Oversold';} else if (z<-0.5){s=8;t='bull';l='Low';}
+    else if (z>1.5){s=-20;t='bear';l='Overbought';} else if (z>0.5){s=-8;t='bear';l='High';}
+    else {s=0;t='neut';l='Fair';}
+    strats.meanReversion = { name: 'Mean Reversion', value: `z=${z.toFixed(2)}`, score: s, tag: t, label: l };
+  }
+
+  const dc = donchian(prices, 20);
+  if (dc) {
+    const range = dc.high - dc.low;
+    const pos = range > 0 ? (current - dc.low) / range : 0.5;
+    let s=0,t='neut',l='';
+    if (pos>0.95){s=18;t='bull';l='Breakout ↑';} else if (pos>0.8){s=8;t='bull';l='Near high';}
+    else if (pos<0.05){s=-18;t='bear';l='Breakdown ↓';} else if (pos<0.2){s=-8;t='bear';l='Near low';}
+    else {s=0;t='neut';l='Range';}
+    strats.breakout = { name: 'Breakout', value: `${(pos*100).toFixed(0)}%`, score: s, tag: t, label: l };
+  }
+
+  const momentum5 = prices.length >= 6 ? (current - prices[prices.length - 6]) / prices[prices.length - 6] * 100 : 0;
+  const momentum20 = prices.length >= 21 ? (current - prices[prices.length - 21]) / prices[prices.length - 21] * 100 : 0;
+  {
+    const imbalance = momentum5 - momentum20/4;
+    let s=0,t='neut',l='';
+    if (imbalance>3){s=15;t='bull';l='Buyers dominate';} else if (imbalance>1){s=7;t='bull';l='Buying';}
+    else if (imbalance<-3){s=-15;t='bear';l='Sellers dominate';} else if (imbalance<-1){s=-7;t='bear';l='Selling';}
+    else {s=0;t='neut';l='Balanced';}
+    strats.orderFlow = { name: 'Order Flow', value: `${imbalance.toFixed(2)}%`, score: s, tag: t, label: l };
+  }
+
+  if (symbol !== 'BTC' && state.history['BTC'] && state.history['BTC'].length >= 21) {
+    const btcRet = (state.history['BTC'][state.history['BTC'].length-1] - state.history['BTC'][state.history['BTC'].length-21]) / state.history['BTC'][state.history['BTC'].length-21] * 100;
+    const relPerf = momentum20 - btcRet;
+    let s=0,t='neut',l='';
+    if (relPerf>10){s=-10;t='bear';l='Overperforming';} else if (relPerf>3){s=5;t='bull';l='Strong vs BTC';}
+    else if (relPerf<-10){s=10;t='bull';l='Underperforming';} else if (relPerf<-3){s=-5;t='bear';l='Weak vs BTC';}
+    else {s=0;t='neut';l='Inline';}
+    strats.statArb = { name: 'Stat Arb vs BTC', value: `${relPerf.toFixed(2)}%`, score: s, tag: t, label: l };
+  }
+  return strats;
+}
+
+/* ---------- Composite Signal ---------- */
+function analyze(symbol, pricesOverride = null) {
+  const prices = pricesOverride || state.history[symbol];
+  if (!prices || prices.length < 60) return null;
+  const current = prices[prices.length - 1];
+  const r = rsi(prices, 14);
+  const m = macd(prices);
+  const bb = bollinger(prices, 20, 2);
+  const ema20 = ema(prices, 20);
+  const ema50 = ema(prices, 50);
+  const vol = volatility(prices, 20);
+  const momentum5 = prices.length >= 6 ? (current - prices[prices.length - 6]) / prices[prices.length - 6] * 100 : 0;
+
+  const breakdown = [];
+  let score = 0;
+
+  if (r !== null) {
+    let s=0,t='neut',l='';
+    if (r<30){s=25;t='bull';l='Oversold';} else if (r<45){s=10;t='bull';l='Cooling';}
+    else if (r>70){s=-25;t='bear';l='Overbought';} else if (r>55){s=-10;t='bear';l='Heating';}
+    breakdown.push({name:'RSI (14)',value:r.toFixed(1),tag:t,label:l,weight:s}); score+=s;
+  }
+  if (m !== null) {
+    let s=0,t='neut',l='';
+    if (m.hist>0&&m.line>0){s=20;t='bull';l='Bullish cross';} else if (m.hist>0){s=10;t='bull';l='Momentum ↑';}
+    else if (m.hist<0&&m.line<0){s=-20;t='bear';l='Bearish cross';} else if (m.hist<0){s=-10;t='bear';l='Momentum ↓';}
+    breakdown.push({name:'MACD',value:m.hist.toFixed(4),tag:t,label:l,weight:s}); score+=s;
+  }
+  if (bb !== null) {
+    const pos = (current-bb.lower)/(bb.upper-bb.lower);
+    let s=0,t='neut',l='';
+    if (pos<0.1){s=15;t='bull';l='Lower band';} else if (pos<0.35){s=8;t='bull';l='Lower half';}
+    else if (pos>0.9){s=-15;t='bear';l='Upper band';} else if (pos>0.65){s=-8;t='bear';l='Upper half';}
+    breakdown.push({name:'Bollinger',value:(pos*100).toFixed(0)+'%',tag:t,label:l,weight:s}); score+=s;
+  }
+  if (ema20 !== null && ema50 !== null) {
+    let s=0,t='neut',l='';
+    if (current>ema20&&ema20>ema50){s=20;t='bull';l='Strong uptrend';} else if (current>ema20){s=10;t='bull';l='Above EMA20';}
+    else if (current<ema20&&ema20<ema50){s=-20;t='bear';l='Strong downtrend';} else if (current<ema20){s=-10;t='bear';l='Below EMA20';}
+    breakdown.push({name:'EMA Trend',value:(current/ema20*100-100).toFixed(2)+'%',tag:t,label:l,weight:s}); score+=s;
+  }
+  {
+    let s=0,t='neut',l='';
+    if (momentum5>5){s=10;t='bull';l='Surging';} else if (momentum5>1){s=5;t='bull';l='Rising';}
+    else if (momentum5<-5){s=-10;t='bear';l='Crashing';} else if (momentum5<-1){s=-5;t='bear';l='Falling';}
+    breakdown.push({name:'5-bar Momentum',value:momentum5.toFixed(2)+'%',tag:t,label:l,weight:s}); score+=s;
+  }
+  if (vol !== null) {
+    let s=0,t='neut',l='';
+    if (vol>150){s=-10;t='bear';l='Extreme';} else if (vol>80){s=-5;t='bear';l='High';}
+    else if (vol<30){s=5;t='bull';l='Calm';}
+    breakdown.push({name:'Volatility (ann.)',value:vol.toFixed(1)+'%',tag:t,label:l,weight:s}); score+=s;
+  }
+
+  const strats = computeStrategies(symbol);
+  if (!pricesOverride) state.strategies[symbol] = strats;
+  if (strats) {
+    for (const k in strats) {
+      const st = strats[k];
+      const scaled = st.score * 0.5;
+      breakdown.push({name: st.name, value: st.value, tag: st.tag, label: st.label, weight: scaled});
+      score += scaled;
+    }
+  }
+
+  const maxPossible = 25+20+15+20+10+10 + 20*0.5*4;
+  const normalized = Math.max(-100, Math.min(100, (score / maxPossible) * 100));
+  let verdict = 'HOLD';
+  if (normalized >= 30) verdict = 'BUY';
+  else if (normalized <= -30) verdict = 'SELL';
+
+  const commentary = generateCommentary(symbol, normalized, verdict, breakdown, {r,m,bb,vol,momentum5});
+  return { score: normalized, breakdown, verdict, commentary };
+}
+
+function generateCommentary(symbol, score, verdict, breakdown, ctx) {
+  const coin = COINS.find(c => c.symbol === symbol);
+  const name = coin ? coin.name : symbol;
+  const parts = [];
+  if (verdict === 'BUY') {
+    const bull = breakdown.filter(b => b.tag === 'bull').slice(0, 3).map(b => b.label.toLowerCase());
+    parts.push(`${name} is flashing bullish signals — ${bull.join(', ')} suggest upward momentum.`);
+    if (ctx.r !== null && ctx.r < 40) parts.push(`RSI at ${ctx.r.toFixed(0)} indicates undervaluation.`);
+    parts.push(`The AI engine recommends accumulating with disciplined sizing.`);
+  } else if (verdict === 'SELL') {
+    const bear = breakdown.filter(b => b.tag === 'bear').slice(0, 3).map(b => b.label.toLowerCase());
+    parts.push(`${name} shows deteriorating structure — ${bear.join(', ')} point to downside risk.`);
+    parts.push(`The AI engine recommends reducing exposure.`);
+  } else {
+    parts.push(`${name} is consolidating with mixed signals.`);
+    if (ctx.vol && ctx.vol < 50) parts.push(`Low volatility suggests a breakout may be forming.`);
+    else parts.push(`No edge present. Standing aside.`);
+  }
+  return parts.join(' ');
+}
+
+/* ---------- Flashbots MEV ---------- */
+const BUNDLE_TYPES = [
+  { type: 'DEX Arb', desc: 'Atomic arbitrage between simulated DEX pools' },
+  { type: 'Liquidation', desc: 'Backrun liquidation on lending protocol' },
+  { type: 'Sandwich Protect', desc: 'Protective bundle against sandwich attack' },
+  { type: 'JIT Liquidity', desc: 'Just-in-time liquidity around large swap' },
+  { type: 'NFT Mint Snipe', desc: 'Atomic mint + list on price oracle lag' },
+  { type: 'Cross-DEX Arb', desc: 'Triangular arbitrage across 3 pools' },
+];
+
+function simulateBundle() {
+  if (!state.mevEnabled) return null;
+  const bt = BUNDLE_TYPES[Math.floor(Math.random() * BUNDLE_TYPES.length)];
+  const gasPrice = (20 + Math.random() * 80).toFixed(1);
+  const priorityFee = (1 + Math.random() * 9).toFixed(2);
+  const included = Math.random() < 0.72;
+  const profit = included ? (Math.random() * 50 + 5) : 0;
+  const gasCost = included ? (parseFloat(gasPrice) * 200000 / 1e9 * 2000) : 0;
+  const netProfit = profit - gasCost;
+  const bundle = {
+    id: '0x' + Math.random().toString(16).slice(2, 10),
+    time: Date.now(), type: bt.type, desc: bt.desc,
+    gasPrice, priorityFee, included, profit, gasCost, netProfit,
+    status: included ? 'included' : (Math.random() < 0.5 ? 'simulated' : 'dropped'),
+  };
+  state.bundles.unshift(bundle);
+  if (state.bundles.length > 50) state.bundles = state.bundles.slice(0, 50);
+  state.mevStats.sent++;
+  if (included) { state.mevStats.included++; state.mevStats.profit += netProfit; state.cash += netProfit; }
+  saveState();
+  return bundle;
+}
+
+/* ---------- Trading Logic ---------- */
+function executeTrade(symbol, side, reason) {
+  const price = state.prices[symbol]?.price;
+  if (!price) return;
+  const signal = state.signals[symbol];
+  const conviction = signal ? Math.abs(signal.score) / 100 : 0.5;
+  if (side === 'BUY') {
+    const pv = computePortfolioValue();
+    const maxAlloc = pv * 0.12 * (0.5 + conviction * 0.5);
+    const spend = Math.min(state.cash, maxAlloc);
+    if (spend < 10) return;
+    const qty = spend / price;
+    const existing = state.holdings[symbol];
+    if (existing) {
+      const totalQty = existing.qty + qty;
+      existing.avgCost = (existing.avgCost * existing.qty + spend) / totalQty;
+      existing.qty = totalQty;
+    } else {
+      state.holdings[symbol] = { qty, avgCost: price };
+    }
+    state.cash -= spend;
+    state.trades.unshift({ time: Date.now(), symbol, side, qty, price, value: spend, reason, score: signal?.score ?? 0, kind: 'trade' });
+  } else if (side === 'SELL') {
+    const holding = state.holdings[symbol];
+    if (!holding || holding.qty <= 0) return;
+    const sellFrac = 0.3 + conviction * 0.7;
+    const sellQty = holding.qty * sellFrac;
+    const proceeds = sellQty * price;
+    holding.qty -= sellQty;
+    state.cash += proceeds;
+    if (holding.qty < 1e-9) delete state.holdings[symbol];
+    state.trades.unshift({ time: Date.now(), symbol, side: 'SELL', qty: sellQty, price, value: proceeds, reason, score: signal?.score ?? 0, kind: 'trade' });
+  }
+  state.lastTradeAt[symbol] = Date.now();
+  saveState();
+}
+
+function maybeAutoTrade(symbol) {
+  if (!state.autoTrade) return;
+  const signal = state.signals[symbol];
+  if (!signal) return;
+  const last = state.lastTradeAt[symbol] || 0;
+  if (Date.now() - last < TRADE_COOLDOWN_MS) return;
+  const holding = state.holdings[symbol];
+  if (signal.verdict === 'BUY' && (!holding || holding.qty * state.prices[symbol].price < computePortfolioValue() * 0.18)) {
+    executeTrade(symbol, 'BUY', signal.commentary);
+  } else if (signal.verdict === 'SELL' && holding) {
+    executeTrade(symbol, 'SELL', signal.commentary);
+  }
+}
+
+function computePortfolioValue() {
+  let v = state.cash;
+  for (const sym in state.holdings) {
+    const p = state.prices[sym]?.price;
+    if (p) v += state.holdings[sym].qty * p;
+  }
+  return v;
+}
+
+/* ---------- History fetching ---------- */
+async function fetchHistory(id, symbol) {
+  if (state.history[symbol]) return;
+  try {
+    const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=30&interval=hourly`;
+    const res = await fetch(url);
+    if (res.status === 429) return;
+    const data = await res.json();
+    state.history[symbol] = data.prices.map(p => p[1]);
+  } catch (e) { console.error('History fetch failed for', symbol, e); }
+}
+
+async function loadHistoryStaggered(symbols) {
+  for (const sym of symbols) {
+    const coin = COINS.find(c => c.symbol === sym);
+    if (!coin) continue;
+    await fetchHistory(coin.id, sym);
+    await new Promise(r => setTimeout(r, HISTORY_FETCH_DELAY_MS));
+  }
+}
+
+/* ---------- Backtesting Engine ---------- */
+function runBacktest(symbol, strategy, initialCapital) {
+  const prices = state.history[symbol];
+  if (!prices || prices.length < 100) return null;
+
+  let cash = initialCapital;
+  let position = 0;
+  let avgCost = 0;
+  const equity = [initialCapital];
+  const trades = [];
+  let peakEquity = initialCapital;
+  let maxDrawdown = 0;
+  const returns = [];
+  let prevEquity = initialCapital;
+
+  const WINDOW = 60;
+  for (let i = WINDOW; i < prices.length; i++) {
+    const slice = prices.slice(0, i+1);
+    const current = prices[i];
+    let signal = null;
+
+    if (strategy === 'composite') {
+      signal = analyze(symbol, slice);
+    } else if (strategy === 'rsi') {
+      const r = rsi(slice, 14);
+      if (r !== null) {
+        if (r < 30) signal = { verdict: 'BUY', score: 60, commentary: `RSI=${r.toFixed(1)} oversold` };
+        else if (r > 70) signal = { verdict: 'SELL', score: -60, commentary: `RSI=${r.toFixed(1)} overbought` };
+        else signal = { verdict: 'HOLD', score: 0, commentary: `RSI=${r.toFixed(1)} neutral` };
+      }
+    } else if (strategy === 'macd') {
+      const m = macd(slice);
+      if (m) {
+        if (m.hist > 0 && m.line > 0) signal = { verdict: 'BUY', score: 50, commentary: 'MACD bullish' };
+        else if (m.hist < 0 && m.line < 0) signal = { verdict: 'SELL', score: -50, commentary: 'MACD bearish' };
+        else signal = { verdict: 'HOLD', score: 0, commentary: 'MACD neutral' };
+      }
+    } else if (strategy === 'breakout') {
+      const dc = donchian(slice, 20);
+      if (dc) {
+        if (current >= dc.high) signal = { verdict: 'BUY', score: 55, commentary: 'Donchian breakout' };
+        else if (current <= dc.low) signal = { verdict: 'SELL', score: -55, commentary: 'Donchian breakdown' };
+        else signal = { verdict: 'HOLD', score: 0, commentary: 'In range' };
+      }
+    } else if (strategy === 'bollinger') {
+      const bb = bollinger(slice, 20, 2);
+      if (bb) {
+        if (current < bb.lower) signal = { verdict: 'BUY', score: 55, commentary: 'Below lower BB' };
+        else if (current > bb.upper) signal = { verdict: 'SELL', score: -55, commentary: 'Above upper BB' };
+        else signal = { verdict: 'HOLD', score: 0, commentary: 'Within BB' };
+      }
+    }
+
+    if (signal) {
+      const conviction = Math.abs(signal.score) / 100;
+      if (signal.verdict === 'BUY' && position === 0 && cash > 100) {
+        const invest = cash * (0.5 + conviction * 0.5);
+        position = invest / current;
+        avgCost = current;
+        cash -= invest;
+        trades.push({ i, type: 'BUY', price: current, qty: position, reason: signal.commentary });
+      } else if (signal.verdict === 'SELL' && position > 0) {
+        const proceeds = position * current;
+        const pnl = proceeds - (position * avgCost);
+        cash += proceeds;
+        trades.push({ i, type: 'SELL', price: current, qty: position, pnl, reason: signal.commentary });
+        position = 0;
+      }
+    }
+
+    const eq = cash + position * current;
+    equity.push(eq);
+    const ret = (eq - prevEquity) / prevEquity;
+    returns.push(ret);
+    prevEquity = eq;
+    if (eq > peakEquity) peakEquity = eq;
+    const dd = (peakEquity - eq) / peakEquity;
+    if (dd > maxDrawdown) maxDrawdown = dd;
+  }
+
+  // Close any open position at end
+  const finalPrice = prices[prices.length - 1];
+  const finalEquity = cash + position * finalPrice;
+  if (position > 0) {
+    trades.push({ i: prices.length - 1, type: 'CLOSE', price: finalPrice, qty: position, pnl: position * (finalPrice - avgCost) });
+  }
+
+  // Stats
+  const totalReturn = (finalEquity - initialCapital) / initialCapital * 100;
+  const winningTrades = trades.filter(t => t.type === 'SELL' && t.pnl > 0).length;
+  const losingTrades = trades.filter(t => t.type === 'SELL' && t.pnl <= 0).length;
+  const closedTrades = trades.filter(t => t.type === 'SELL' || t.type === 'CLOSE');
+  const winRate = closedTrades.length > 0 ? (winningTrades / closedTrades.length) * 100 : 0;
+  const avgReturn = returns.length > 0 ? returns.reduce((a,b)=>a+b,0)/returns.length : 0;
+  const stdReturn = returns.length > 1 ? Math.sqrt(returns.reduce((a,b)=>a+Math.pow(b-avgReturn,2),0)/(returns.length-1)) : 0;
+  const sharpe = stdReturn > 0 ? (avgReturn / stdReturn) * Math.sqrt(24*365) : 0; // annualized hourly
+  const grossProfit = closedTrades.filter(t=>t.pnl>0).reduce((a,t)=>a+t.pnl,0);
+  const grossLoss = Math.abs(closedTrades.filter(t=>t.pnl<0).reduce((a,t)=>a+t.pnl,0));
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
+
+  return {
+    symbol, strategy, initialCapital, finalEquity, totalReturn,
+    trades, equity, maxDrawdown: maxDrawdown * 100, sharpe, winRate,
+    profitFactor, totalTrades: closedTrades.length,
+    winningTrades, losingTrades,
+  };
+}
+
+/* ---------- Flash Loan Builder ---------- */
+function buildFlashLoan() {
+  const sym = document.getElementById('flAsset').value;
+  const amount = parseFloat(document.getElementById('flAmount').value) || 0;
+  const buyDex = document.getElementById('flBuyDex').value;
+  const sellDex = document.getElementById('flSellDex').value;
+  const gasGwei = parseFloat(document.getElementById('flGas').value) || 30;
+
+  const summary = document.getElementById('flSummary');
+
+  if (buyDex === sellDex) {
+    summary.innerHTML = '<div class="fl-verdict unprofitable">⚠ Buy and sell DEX must be different</div>';
+    return;
+  }
+
+  const basePrice = state.prices[sym]?.price;
+  if (!basePrice) {
+    summary.innerHTML = '<div class="empty">Price data unavailable</div>';
+    return;
+  }
+
+  const buyPrice = state.dexPrices[sym]?.[buyDex] || basePrice * 0.999;
+  const sellPrice = state.dexPrices[sym]?.[sellDex] || basePrice * 1.001;
+
+  // Aave flash loan fee: 0.05% (0.0005)
+  const AAVE_FEE = 0.0005;
+  // DEX swap fee: ~0.3%
+  const SWAP_FEE = 0.003;
+  // Slippage estimate based on amount vs liquidity
+  const buyDexInfo = DEXES.find(d => d.id === buyDex);
+  const sellDexInfo = DEXES.find(d => d.id === sellDex);
+  const buySlippage = (amount / buyDexInfo.liquidity) * 0.5;
+  const sellSlippage = (amount / sellDexInfo.liquidity) * 0.5;
+  // Gas: ~250k gas for the whole atomic tx
+  const ethPrice = state.prices['ETH']?.price || 2000;
+  const gasCostUSD = (gasGwei * 250000 / 1e9) * ethPrice;
+
+  // Execution
+  const tokensReceived = (amount / buyPrice) * (1 - SWAP_FEE - buySlippage);
+  const usdReceived = tokensReceived * sellPrice * (1 - SWAP_FEE - sellSlippage);
+  const loanRepayment = amount * (1 + AAVE_FEE);
+  const grossProfit = usdReceived - amount;
+  const totalFees = amount * AAVE_FEE + amount * SWAP_FEE * 2 + amount * (buySlippage + sellSlippage) + gasCostUSD;
+  const netProfit = usdReceived - loanRepayment - gasCostUSD;
+  const roi = (netProfit / amount) * 100;
+  const spreadPct = ((sellPrice - buyPrice) / buyPrice) * 100;
+
+  summary.innerHTML = `
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px;">💰 Trade Simulation</div>
+    <div class="fl-row"><span>Loan Amount</span><span class="mono">$${amount.toLocaleString()}</span></div>
+    <div class="fl-row"><span>Buy on ${buyDexInfo.name}</span><span class="mono">$${buyPrice.toFixed(4)}</span></div>
+    <div class="fl-row"><span>Sell on ${sellDexInfo.name}</span><span class="mono">$${sellPrice.toFixed(4)}</span></div>
+    <div class="fl-row"><span>Price Spread</span><span class="mono ${spreadPct>=0?'pos':'neg'}">${spreadPct.toFixed(3)}%</span></div>
+    <div class="fl-row"><span>Aave Fee (0.05%)</span><span class="mono">$${(amount*AAVE_FEE).toFixed(2)}</span></div>
+    <div class="fl-row"><span>Swap Fees (2× 0.3%)</span><span class="mono">$${(amount*SWAP_FEE*2).toFixed(2)}</span></div>
+    <div class="fl-row"><span>Slippage (est.)</span><span class="mono">$${(amount*(buySlippage+sellSlippage)).toFixed(2)}</span></div>
+    <div class="fl-row"><span>Gas Cost</span><span class="mono">$${gasCostUSD.toFixed(2)}</span></div>
+    <div class="fl-row"><span>Tokens Received</span><span class="mono">${tokensReceived.toFixed(6)} ${sym}</span></div>
+    <div class="fl-row"><span>Loan Repayment</span><span class="mono">$${loanRepayment.toFixed(2)}</span></div>
+    <div class="fl-row total"><span>Net Profit</span><span class="mono ${netProfit>=0?'pos':'neg'}">${netProfit>=0?'+':''}$${netProfit.toFixed(2)}</span></div>
+    <div class="fl-row"><span>ROI</span><span class="mono ${roi>=0?'pos':'neg'}">${roi>=0?'+':''}${roi.toFixed(3)}%</span></div>
+
+    <div class="fl-steps">
+      <div style="font-size:11px;font-weight:700;margin:10px 0 6px;">🔗 Execution Steps (Atomic)</div>
+      <div class="fl-step"><div class="fl-step-num">1</div><div class="fl-step-text">Borrow ${sym} from Aave V3</div><div class="fl-step-val">+$${amount.toFixed(0)}</div></div>
+      <div class="fl-step"><div class="fl-step-num">2</div><div class="fl-step-text">Swap on ${buyDexInfo.name}</div><div class="fl-step-val">${tokensReceived.toFixed(4)} ${sym}</div></div>
+      <div class="fl-step"><div class="fl-step-num">3</div><div class="fl-step-text">Swap on ${sellDexInfo.name}</div><div class="fl-step-val">$${usdReceived.toFixed(2)}</div></div>
+      <div class="fl-step"><div class="fl-step-num">4</div><div class="fl-step-text">Repay Aave + fee</div><div class="fl-step-val">-$${loanRepayment.toFixed(2)}</div></div>
+      <div class="fl-step"><div class="fl-step-num">5</div><div class="fl-step-text">Keep profit</div><div class="fl-step-val ${netProfit>=0?'pos':'neg'}">${netProfit>=0?'+':''}$${netProfit.toFixed(2)}</div></div>
+    </div>
+
+    <div class="fl-verdict ${netProfit > 0 ? 'profitable' : 'unprofitable'}">
+      ${netProfit > 0 ? `✅ PROFITABLE — Execute via Flashbots bundle` : `❌ UNPROFITABLE — Spread too narrow after fees`}
+    </div>
+  `;
+}
+
+/* ---------- Rendering ---------- */
+function renderCoinTabs() {
+  const el = document.getElementById('coinTabs');
+  el.innerHTML = COINS.map(c => {
+    const p = state.prices[c.symbol];
+    const chg = p ? p.change24h : 0;
+    const chgCls = chg >= 0 ? 'pos' : 'neg';
+    const chgTxt = p ? (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%' : '—';
+    return `<div class="coin-tab ${state.selected === c.symbol ? 'active' : ''}" data-sym="${c.symbol}">
+      ${p ? `<img src="${p.image}" alt="">` : ''}
+      <span>${c.symbol}</span>
+      <span class="chg ${chgCls}">${chgTxt}</span>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.coin-tab').forEach(t => {
+    t.onclick = async () => {
+      state.selected = t.dataset.sym;
+      renderAll();
+      if (!state.history[state.selected]) {
+        const coin = COINS.find(c => c.symbol === state.selected);
+        if (coin) {
+          await fetchHistory(coin.id, state.selected);
+          const sig = analyze(state.selected);
+          if (sig) state.signals[state.selected] = sig;
+          renderAll();
+        }
+      }
+    };
+  });
+}
+
+function renderPriceHead() {
+  const sym = state.selected;
+  const p = state.prices[sym];
+  const priceEl = document.getElementById('priceBig');
+  const chgEl = document.getElementById('priceChg');
+  const timeEl = document.getElementById('priceTime');
+  const labelEl = document.getElementById('aiCoinLabel');
+  if (!p) { priceEl.textContent = '—'; return; }
+  priceEl.textContent = '$' + p.price.toLocaleString(undefined, { maximumFractionDigits: p.price < 1 ? 6 : 2 });
+  const chg = p.change24h;
+  chgEl.textContent = (chg >= 0 ? '▲ +' : '▼ ') + chg.toFixed(2) + '% (24h)';
+  chgEl.className = 'price-chg ' + (chg >= 0 ? 'pos' : 'neg');
+  const src = state.priceSources[sym] || '?';
+  timeEl.textContent = `${new Date().toLocaleTimeString()} · ${src}`;
+  labelEl.textContent = `${COINS.find(c => c.symbol === sym)?.name || sym} · ${sym}/USD`;
+}
+
+function renderChart() {
+  const sym = state.selected;
+  const hist = state.history[sym];
+  if (!hist || hist.length < 10) return;
+  const ema20 = [], ema50 = [], bbUpper = [], bbLower = [];
+  for (let i = 0; i < hist.length; i++) {
+    const slice = hist.slice(0, i+1);
+    ema20.push(ema(slice, 20));
+    ema50.push(ema(slice, 50));
+    const bb = bollinger(slice, 20, 2);
+    bbUpper.push(bb ? bb.upper : null);
+    bbLower.push(bb ? bb.lower : null);
+  }
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  if (state.charts.price) state.charts.price.destroy();
+  const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, 'rgba(99,102,241,0.35)');
+  gradient.addColorStop(1, 'rgba(99,102,241,0)');
+  state.charts.price = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: hist.map((_,i)=>i),
+      datasets: [
+        { label: 'Price', data: hist, borderColor: '#6366f1', backgroundColor: gradient, fill: true, borderWidth: 2, pointRadius: 0, tension: 0.2 },
+        { label: 'EMA 20', data: ema20, borderColor: '#10b981', borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+        { label: 'EMA 50', data: ema50, borderColor: '#f59e0b', borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+        { label: 'BB Upper', data: bbUpper, borderColor: 'rgba(139,92,246,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [3,3], fill: false },
+        { label: 'BB Lower', data: bbLower, borderColor: 'rgba(139,92,246,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [3,3], fill: '-1', backgroundColor: 'rgba(139,92,246,0.05)' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { color: '#7b839e', font: { size: 9 }, boxWidth: 10, padding: 8 } }, tooltip: { mode: 'index', intersect: false, backgroundColor: '#141a2e', borderColor: '#232b45', borderWidth: 1 } },
+      scales: { x: { display: false }, y: { grid: { color: 'rgba(35,43,69,0.5)' }, ticks: { color: '#7b839e', font: { size: 9 }, callback: v => '$' + v.toLocaleString() } } },
+    },
+  });
+}
+
+function renderAI() {
+  const sym = state.selected;
+  const sig = state.signals[sym];
+  const gaugeVal = document.getElementById('gaugeValue');
+  const gaugeFill = document.getElementById('gaugeFill');
+  const verdictEl = document.getElementById('verdict');
+  const listEl = document.getElementById('signalList');
+  const textEl = document.getElementById('aiText');
+  if (!sig) {
+    gaugeVal.textContent = '—';
+    verdictEl.textContent = state.history[sym] ? 'COMPUTING…' : 'LOADING HISTORY…';
+    verdictEl.className = 'verdict hold';
+    listEl.innerHTML = '';
+    textEl.textContent = 'Fetching market data…';
+    return;
+  }
+  gaugeVal.textContent = sig.score.toFixed(0);
+  gaugeVal.style.color = sig.score > 15 ? 'var(--green)' : sig.score < -15 ? 'var(--red)' : 'var(--yellow)';
+  const pct = (sig.score + 100) / 2;
+  gaugeFill.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+  gaugeFill.style.borderTopColor = sig.score > 0 ? 'var(--green)' : 'var(--red)';
+  gaugeFill.style.borderRightColor = sig.score > 0 ? 'var(--green)' : 'var(--red)';
+  verdictEl.textContent = sig.verdict;
+  verdictEl.className = 'verdict ' + sig.verdict.toLowerCase();
+  listEl.innerHTML = sig.breakdown.map(b => `
+    <div class="signal">
+      <div><div class="signal-name">${b.name}</div><div class="signal-val">${b.value}</div></div>
+      <span class="signal-tag ${b.tag}">${b.label}</span>
+    </div>`).join('');
+  textEl.textContent = sig.commentary;
+}
+
+function renderStrategies() {
+  const sym = state.selected;
+  const strats = state.strategies[sym];
+  const grid = document.getElementById('stratGrid');
+  if (!strats || Object.keys(strats).length === 0) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">Loading strategies…</div>';
+    return;
+  }
+  grid.innerHTML = Object.values(strats).map(s => {
+    const color = s.tag === 'bull' ? 'var(--green)' : s.tag === 'bear' ? 'var(--red)' : 'var(--yellow)';
+    const pct = Math.min(100, Math.abs(s.score) * 4);
+    return `<div class="strat-card">
+      <div class="strat-head">
+        <div class="strat-name">${s.name}</div>
+        <span class="signal-tag ${s.tag}">${s.label}</span>
+      </div>
+      <div class="strat-val">${s.value}</div>
+      <div class="strat-bar"><div class="strat-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderHoldings() {
+  const body = document.getElementById('holdingsBody');
+  const syms = Object.keys(state.holdings);
+  if (syms.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="empty">No open positions. Cash: $${state.cash.toFixed(2)}</td></tr>`;
+    return;
+  }
+  body.innerHTML = syms.map(sym => {
+    const h = state.holdings[sym];
+    const p = state.prices[sym]?.price || h.avgCost;
+    const value = h.qty * p;
+    const cost = h.qty * h.avgCost;
+    const pnl = value - cost;
+    const pnlPct = (pnl / cost) * 100;
+    return `<tr>
+      <td><div class="coin-cell">${state.prices[sym]?.image ? `<img src="${state.prices[sym].image}">` : ''}${sym}</div></td>
+      <td class="mono">${h.qty.toFixed(6)}</td>
+      <td class="mono">$${h.avgCost.toLocaleString(undefined,{maximumFractionDigits:4})}</td>
+      <td class="mono">$${p.toLocaleString(undefined,{maximumFractionDigits:4})}</td>
+      <td class="mono">$${value.toFixed(2)}</td>
+      <td class="mono ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}<br><small>(${pnlPct.toFixed(2)}%)</small></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderWatchlist() {
+  const body = document.getElementById('watchlistBody');
+  if (!body) return; // guard for pages without the watchlist table
+
+  try {
+    // If prices is missing or not an object, avoid mapping and show empty state
+    if (!state.prices || typeof state.prices !== 'object') {
+      body.innerHTML = `<tr><td colspan="5" class="empty">No price data available</td></tr>`;
+      return;
+    }
+
+    const rows = [];
+    for (const c of COINS) {
+      const p = state.prices?.[c.symbol];
+      if (!p) continue; // skip coins with no price data
+      const sig = state.signals?.[c.symbol];
+      const src = state.priceSources?.[c.symbol] || '?';
+      const chg = typeof p.change24h === 'number' ? p.change24h : 0;
+      const badge = sig ? `<span class="badge ${String(sig.verdict).toLowerCase()}">${sig.verdict}</span>` : '<span class="loader"></span>';
+      rows.push(`<tr>
+        <td><div class="coin-cell">${p.image ? `<img src="${p.image}">` : ''}${c.symbol}</div></td>
+        <td class="mono">$${(typeof p.price === 'number' ? p.price : 0).toLocaleString(undefined,{maximumFractionDigits: p.price < 1 ? 6 : 2})}</td>
+        <td class="mono ${chg>=0?'pos':'neg'}">${chg>=0?'+':''}${chg.toFixed(2)}%</td>
+        <td><span class="badge" style="background:rgba(99,102,241,0.15);color:var(--accent);">${src}</span></td>
+        <td>${badge}</td>
+      </tr>`);
+    }
+
+    body.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="5" class="empty">No watchlist items loaded</td></tr>`;
+  } catch (err) {
+    // Defensive fallback to avoid breaking the whole UI
+    console.error('renderWatchlist error:', err);
+    body.innerHTML = `<tr><td colspan="5" class="empty">Watchlist unavailable</td></tr>`;
+  }
+}
+
+function renderTradeLog() {
+  const el = document.getElementById('tradeLog');
+  if (state.trades.length === 0) {
+    el.innerHTML = '<div class="empty">No trades yet.</div>';
+    return;
+  }
+  el.innerHTML = state.trades.slice(0, 40).map(t => {
+    const time = new Date(t.time).toLocaleString();
+    return `<div class="trade-item ${t.side.toLowerCase()} ${t.kind === 'mev' ? 'mev' : ''}">
+      <div class="trade-head">
+        <span class="trade-action ${t.side === 'BUY' ? 'pos' : 'neg'}">${t.side} ${t.symbol}</span>
+        <span class="trade-time">${time}</span>
+      </div>
+      <div class="mono" style="font-size:10px;color:var(--muted);">
+        ${t.qty.toFixed(6)} @ $${t.price.toLocaleString(undefined,{maximumFractionDigits:4})} = $${t.value.toFixed(2)} · Signal: ${t.score.toFixed(0)}
+      </div>
+      <div class="trade-reason">${t.reason}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBacktest() {
+  const statsEl = document.getElementById('btStats');
+  const r = state.backtestResults;
+  if (!r) {
+    statsEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Select parameters and run backtest</div>';
+    return;
+  }
+  const items = [
+    { label: 'Final Equity', value: '$' + r.finalEquity.toFixed(2), cls: r.totalReturn >= 0 ? 'pos' : 'neg' },
+    { label: 'Total Return', value: (r.totalReturn >= 0 ? '+' : '') + r.totalReturn.toFixed(2) + '%', cls: r.totalReturn >= 0 ? 'pos' : 'neg' },
+    { label: 'Sharpe Ratio', value: r.sharpe.toFixed(2), cls: r.sharpe >= 1 ? 'pos' : r.sharpe < 0 ? 'neg' : '' },
+    { label: 'Max Drawdown', value: '-' + r.maxDrawdown.toFixed(2) + '%', cls: 'neg' },
+    { label: 'Win Rate', value: r.winRate.toFixed(1) + '%', cls: r.winRate >= 50 ? 'pos' : 'neg' },
+    { label: 'Profit Factor', value: r.profitFactor === Infinity ? '∞' : r.profitFactor.toFixed(2), cls: r.profitFactor >= 1.5 ? 'pos' : '' },
+  ];
+  statsEl.innerHTML = items.map(i => `
+    <div class="bt-stat">
+      <div class="bt-stat-label">${i.label}</div>
+      <div class="bt-stat-value mono ${i.cls}">${i.value}</div>
+    </div>`).join('');
+
+  // Chart
+  const ctx = document.getElementById('btChart').getContext('2d');
+  if (state.charts.bt) state.charts.bt.destroy();
+  const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+  gradient.addColorStop(0, r.totalReturn >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  state.charts.bt = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: r.equity.map((_,i)=>i),
+      datasets: [
+        { label: 'Equity', data: r.equity, borderColor: r.totalReturn >= 0 ? '#10b981' : '#ef4444', backgroundColor: gradient, fill: true, borderWidth: 2, pointRadius: 0, tension: 0.2 },
+        { label: 'Initial Capital', data: r.equity.map(() => r.initialCapital), borderColor: 'rgba(123,131,158,0.5)', borderWidth: 1, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { color: '#7b839e', font: { size: 9 }, boxWidth: 10, padding: 8 } }, tooltip: { mode: 'index', intersect: false, backgroundColor: '#141a2e', borderColor: '#232b45', borderWidth: 1 } },
+      scales: { x: { display: false }, y: { grid: { color: 'rgba(35,43,69,0.5)' }, ticks: { color: '#7b839e', font: { size: 9 }, callback: v => '$' + v.toLocaleString() } } },
+    },
+  });
+}
+
+function renderDexArb() {
+  const grid = document.getElementById('dexGrid');
+  const sym = state.selected;
+  const base = state.prices[sym]?.price;
+  if (!base) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1">Loading…</div>'; return; }
+  const dexP = state.dexPrices[sym] || {};
+  grid.innerHTML = DEXES.map(d => {
+    const p = dexP[d.id] || base;
+    const diff = ((p - base) / base) * 100;
+    return `<div class="dex-card">
+      <div class="dex-head">
+        <div class="dex-name" style="color:${d.color}">${d.name}</div>
+        <div class="dex-tvl">$${(d.liquidity/1e6).toFixed(0)}M TVL</div>
+      </div>
+      <div class="dex-price mono">$${p.toLocaleString(undefined,{maximumFractionDigits: base < 1 ? 6 : 2})}</div>
+      <div class="mono ${diff>=0?'pos':'neg'}" style="font-size:11px;margin-top:3px;">${diff>=0?'+':''}${diff.toFixed(3)}% vs mid</div>
+    </div>`;
+  }).join('');
+
+  const feed = document.getElementById('arbFeed');
+  document.getElementById('arbCount').textContent = `${state.arbOpportunities.length} active`;
+  if (state.arbOpportunities.length === 0) {
+    feed.innerHTML = '<div class="empty">No profitable opportunities detected. Spreads are tight.</div>';
+    return;
+  }
+  feed.innerHTML = state.arbOpportunities.slice(0, 15).map(o => `
+    <div class="arb-item ${o.hot ? 'hot' : ''}">
+      <div class="arb-head">
+        <span class="arb-pair">${o.symbol}/USD ${o.hot ? '🔥' : ''}</span>
+        <span class="arb-spread ${o.net>=0?'pos':'neg'}">${o.net>=0?'+':''}$${o.net.toFixed(2)}</span>
+      </div>
+      <div class="arb-route">
+        Buy @ ${o.buyName} ($${o.buyPrice.toFixed(4)}) → Sell @ ${o.sellName} ($${o.sellPrice.toFixed(4)})
+      </div>
+      <div class="arb-profit">
+        <span class="mono">Spread: ${(o.spread*100).toFixed(3)}%</span> ·
+        <span class="mono">Gross: $${o.gross.toFixed(2)}</span> ·
+        <span class="mono neg">Fees: -$${o.fee.toFixed(2)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderData() {
+  const statsEl = document.getElementById('dataStats');
+  const items = [
+    { label: 'Price Ticks Logged', value: state.priceLog.length.toLocaleString() },
+    { label: 'API Calls (total)', value: Object.values(state.apiStats).filter(v => typeof v === 'number' && v > 0 && !isNaN(v)).reduce((a,b)=>a+b, 0) },
+    { label: 'Active Sources', value: Object.keys(state.apiStats).filter(k => k !== 'failures' && state.apiStats[k] > 0).length + '/4' },
+    { label: 'Failures', value: state.apiStats.failures },
+  ];
+  statsEl.innerHTML = items.map(i => `
+    <div class="data-stat">
+      <div class="data-stat-label">${i.label}</div>
+      <div class="data-stat-value mono">${i.value}</div>
+    </div>`).join('');
+
+  const preview = document.getElementById('csvPreview');
+  const recent = state.priceLog.slice(-50);
+  if (recent.length === 0) {
+    preview.textContent = 'Waiting for data…';
+    return;
+  }
+  const lines = ['timestamp,symbol,price,change24h,source'];
+  recent.forEach(t => {
+    lines.push(`${new Date(t.t).toISOString()},${t.sym},${t.price},${t.chg.toFixed(4)},${t.src}`);
+  });
+  preview.textContent = lines.join('\n');
+  document.getElementById('csvTickInfo').textContent = `${recent.length} rows · updated ${new Date().toLocaleTimeString()}`;
+}
+
+function renderStats() {
+  const pv = computePortfolioValue();
+  const pnl = pv - STARTING_CASH;
+  const ret = (pnl / STARTING_CASH) * 100;
+  document.getElementById('statPortfolio').textContent = '$' + pv.toLocaleString(undefined,{maximumFractionDigits:2});
+  document.getElementById('statCash').textContent = '$' + state.cash.toLocaleString(undefined,{maximumFractionDigits:2});
+  const pnlEl = document.getElementById('statPnL');
+  pnlEl.textContent = (pnl>=0?'+':'') + '$' + pnl.toFixed(2);
+  pnlEl.className = 'stat-value mono ' + (pnl>=0?'pos':'neg');
+  const combinedMev = state.mevStats.profit;
+  document.getElementById('statMev').textContent = (combinedMev>=0?'+':'') + '$' + combinedMev.toFixed(2);
+  const retEl = document.getElementById('statReturn');
+  retEl.textContent = (ret>=0?'+':'') + ret.toFixed(2) + '%';
+  retEl.className = 'stat-value mono ' + (ret>=0?'pos':'neg');
+}
+
+function renderAll() {
+  // Only render panels that exist on the current page to avoid null DOM access
+  if (document.getElementById('coinTabs')) renderCoinTabs();
+  if (document.getElementById('priceBig')) renderPriceHead();
+  if (document.getElementById('priceChart')) renderChart();
+  if (document.getElementById('gaugeValue')) renderAI();
+  if (document.getElementById('stratGrid')) renderStrategies();
+  if (document.getElementById('holdingsBody')) renderHoldings();
+  if (document.getElementById('watchlistBody')) renderWatchlist();
+  if (document.getElementById('tradeLog')) renderTradeLog();
+  if (document.getElementById('btStats')) renderBacktest();
+  if (document.getElementById('dexGrid')) renderDexArb();
+  if (document.getElementById('dataStats')) renderData();
+  if (document.getElementById('statPortfolio')) renderStats();
+}
+
+/* ---------- Main loops ---------- */
+async function refreshPrices() {
+  await fetchPricesWithRotation();
+  renderAll();
+}
+
+async function runAnalysisFor(symbol) {
+  const sig = analyze(symbol);
+  if (sig) state.signals[symbol] = sig;
+}
+
+async function runAnalysis() {
+  const withHistory = COINS.filter(c => state.history[c.symbol]);
+  for (const coin of withHistory) await runAnalysisFor(coin.symbol);
+  renderAll();
+  for (const coin of withHistory) maybeAutoTrade(coin.symbol);
+  renderAll();
+}
+
+function populateSelectors() {
+  const btAsset = document.getElementById('btAsset');
+  btAsset.innerHTML = COINS.filter(c => state.history[c.symbol]).map(c => `<option value="${c.symbol}">${c.symbol} — ${c.name}</option>`).join('');
+
+  const flAsset = document.getElementById('flAsset');
+  flAsset.innerHTML = COINS.map(c => `<option value="${c.symbol}">${c.symbol} — ${c.name}</option>`).join('');
+
+  const flBuyDex = document.getElementById('flBuyDex');
+  const flSellDex = document.getElementById('flSellDex');
+  const dexOpts = DEXES.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  flBuyDex.innerHTML = dexOpts;
+  flSellDex.innerHTML = dexOpts;
+  flSellDex.selectedIndex = 1;
+}
+
+/* ---------- Init ---------- */
+async function init() {
+  loadState();
+  document.getElementById('autoToggle').classList.toggle('on', state.autoTrade);
+  document.getElementById('mevToggle').classList.toggle('on', state.mevEnabled);
+  document.getElementById('csvToggle').classList.toggle('on', state.csvEnabled);
+
+  await refreshPrices();
+  updateDexPrices();
+
+  const initialLoad = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA'];
+  await loadHistoryStaggered(initialLoad);
+  await runAnalysis();
+  populateSelectors();
+  renderAll();
+
+  const remaining = COINS.filter(c => !initialLoad.includes(c.symbol)).map(c => c.symbol);
+  let idx = 0;
+  const bgLoader = setInterval(async () => {
+    if (idx >= remaining.length) { clearInterval(bgLoader); populateSelectors(); return; }
+    const sym = remaining[idx++];
+    const coin = COINS.find(c => c.symbol === sym);
+    if (coin) await fetchHistory(coin.id, sym);
+  }, 3500);
+
+  setInterval(refreshPrices, REFRESH_MS);
+  setInterval(runAnalysis, ANALYSIS_MS);
+  setInterval(() => {
+    updateDexPrices();
+    renderDexArb();
+  }, DEX_MS);
+  setInterval(() => {
+    if (state.mevEnabled && Math.random() < 0.6) simulateBundle();
+    renderStats();
+  }, BUNDLE_MS);
+  setInterval(() => {
+    renderData();
+    saveState();
+  }, 10000);
+}
+
+/* ---------- UI handlers ---------- */
+document.getElementById('autoToggle').onclick = (e) => {
+  state.autoTrade = !state.autoTrade;
+  e.currentTarget.classList.toggle('on', state.autoTrade);
+  saveState();
+};
+document.getElementById('mevToggle').onclick = (e) => {
+  state.mevEnabled = !state.mevEnabled;
+  e.currentTarget.classList.toggle('on', state.mevEnabled);
+  saveState();
+};
+document.getElementById('csvToggle').onclick = (e) => {
+  state.csvEnabled = !state.csvEnabled;
+  e.currentTarget.classList.toggle('on', state.csvEnabled);
+  saveState();
+};
+document.getElementById('analyzeBtn').onclick = async () => {
+  document.getElementById('analyzeBtn').innerHTML = '<span class="loader"></span> Analyzing…';
+  await runAnalysis();
+  document.getElementById('analyzeBtn').innerHTML = '⟳ Analyze';
+};
+document.getElementById('resetBtn').onclick = () => {
+  if (!confirm('Reset portfolio and all data?')) return;
+  state.cash = STARTING_CASH;
+  state.holdings = {};
+  state.trades = [];
+  state.bundles = [];
+  state.mevStats = { sent: 0, included: 0, profit: 0 };
+  state.priceLog = [];
+  state.backtestResults = null;
+  state.lastTradeAt = {};
+  saveState();
+  renderAll();
+};
+
+document.getElementById('btRun').onclick = () => {
+  const sym = document.getElementById('btAsset').value;
+  const strat = document.getElementById('btStrategy').value;
+  const capital = parseFloat(document.getElementById('btCapital').value) || 10000;
+  if (!state.history[sym]) { alert('History not loaded for ' + sym); return; }
+  state.backtestResults = runBacktest(sym, strat, capital);
+  renderBacktest();
+};
+document.getElementById('btExport').onclick = () => {
+  const r = state.backtestResults;
+  if (!r) { alert('Run a backtest first'); return; }
+  const rows = [['bar','equity']];
+  r.equity.forEach((e, i) => rows.push([i, e.toFixed(2)]));
+  rows.push([]);
+  rows.push(['trade_idx','type','price','qty','pnl','reason']);
+  r.trades.forEach((t, i) => rows.push([i, t.type, t.price.toFixed(4), t.qty.toFixed(6), (t.pnl||0).toFixed(2), (t.reason||'').replace(/,/g,';')]));
+  downloadCSV(`backtest_${r.symbol}_${r.strategy}_${Date.now()}.csv`, rows);
+};
+
+document.getElementById('flBuild').onclick = () => buildFlashLoan();
+document.getElementById('flAsset').onchange = () => buildFlashLoan();
+document.getElementById('flBuyDex').onchange = () => buildFlashLoan();
+document.getElementById('flSellDex').onchange = () => buildFlashLoan();
+
+document.getElementById('dlPrices').onclick = () => {
+  if (state.priceLog.length === 0) { alert('No price data logged yet'); return; }
+  const rows = [['timestamp','symbol','price','change24h','source']];
+  state.priceLog.forEach(t => rows.push([new Date(t.t).toISOString(), t.sym, t.price, t.chg.toFixed(4), t.src]));
+  downloadCSV(`nexus_prices_${Date.now()}.csv`, rows);
+};
+document.getElementById('dlTrades').onclick = () => {
+  if (state.trades.length === 0) { alert('No trades yet'); return; }
+  const rows = [['timestamp','symbol','side','qty','price','value','signal_score','reason']];
+  state.trades.forEach(t => rows.push([new Date(t.time).toISOString(), t.symbol, t.side, t.qty.toFixed(8), t.price, t.value.toFixed(2), t.score.toFixed(0), (t.reason||'').replace(/,/g,';')]));
+  downloadCSV(`nexus_trades_${Date.now()}.csv`, rows);
+};
+document.getElementById('dlBundles').onclick = () => {
+  if (state.bundles.length === 0) { alert('No bundles yet'); return; }
+  const rows = [['timestamp','id','type','gas_gwei','tip_gwei','included','profit','gas_cost','net_profit','status']];
+  state.bundles.forEach(b => rows.push([new Date(b.time).toISOString(), b.id, b.type, b.gasPrice, b.priorityFee, b.included, b.profit.toFixed(2), b.gasCost.toFixed(2), b.netProfit.toFixed(2), b.status]));
+  downloadCSV(`nexus_bundles_${Date.now()}.csv`, rows);
+};
+document.getElementById('dlBacktest').onclick = () => document.getElementById('btExport').click();
+document.getElementById('clearLog').onclick = () => {
+  if (!confirm('Clear all logged price data?')) return;
+  state.priceLog = [];
+  saveState();
+  renderData();
+};
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+  };
+});
+
+init();
+</script>
+</body>
+</html>

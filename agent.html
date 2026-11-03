@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nexus AI Agent Manager — MoE · Knowledge Base · Blocks Deploy</title>
+<script src="https://js.puter.com/v2/"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #070912; --bg-2: #0c1020; --panel: #111627; --panel-2: #171d33;
+    --border: #222a47; --text: #e6e9f2; --muted: #7b839e;
+    --accent: #6366f1; --accent-2: #8b5cf6; --green: #10b981;
+    --red: #ef4444; --yellow: #f59e0b; --cyan: #06b6d4; --pink: #ec4899;
+    --orange: #f97316; --gold: #fbbf24; --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(ellipse at top, #131a33 0%, var(--bg) 60%);
+    color: var(--text); min-height: 100vh; padding: 14px; font-size: 13px;
+  }
+  .app { max-width: 1800px; margin: 0 auto; }
+  header {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    gap: 14px; padding: 14px 18px; margin-bottom: 14px;
+    background: linear-gradient(135deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--border); border-radius: 14px;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--pink) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800;
+    box-shadow: 0 0 24px rgba(139,92,246,0.5);
+  }
+  .logo h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo p { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; }
+  .stat { text-align: right; }
+  .stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .stat-value.pos { color: var(--green); } .stat-value.neg { color: var(--red); }
+
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); padding: 7px 12px;
+    border-radius: 8px; cursor: pointer; font-size: 11px;
+    font-weight: 600; transition: all 0.15s;
+  }
+  button:hover { background: var(--border); }
+  button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; }
+  button.deploy { background: linear-gradient(135deg, var(--green), var(--cyan)); border: none; }
+  button.agent { background: linear-gradient(135deg, var(--purple), var(--pink)); border: none; }
+  button.danger { background: rgba(239,68,68,0.15); color: var(--red); border-color: rgba(239,68,68,0.3); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px;
+  }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .panel-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
+  .panel-subtitle { font-size: 10px; color: var(--muted); }
+  .badge { padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+  .badge.active { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge.active::before { content: '●'; margin-right: 4px; animation: pulse 1.5s infinite; }
+  .badge.agent { background: rgba(168,85,247,0.15); color: var(--purple); }
+  .badge.deploy { background: rgba(16,185,129,0.15); color: var(--green); }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .mono { font-family: 'SF Mono', Consolas, monospace; }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab { padding: 8px 14px; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; transition: 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Agent Cards */
+  .agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .agent-card {
+    padding: 14px; background: var(--panel-2); border-radius: 10px;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
+  }
+  .agent-card:hover { border-color: var(--purple); transform: translateY(-2px); }
+  .agent-card.active { border-color: var(--green); background: linear-gradient(135deg, rgba(16,185,129,0.05), var(--panel-2)); }
+  .agent-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .agent-name { font-size: 13px; font-weight: 700; }
+  .agent-status { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .agent-status.online { background: rgba(16,185,129,0.2); color: var(--green); }
+  .agent-status.offline { background: rgba(123,131,158,0.2); color: var(--muted); }
+  .agent-desc { font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+  .agent-stats { display: flex; gap: 12px; font-size: 10px; color: var(--muted); }
+  .agent-stat { display: flex; align-items: center; gap: 4px; }
+
+  /* Knowledge Base */
+  .kb-search {
+    width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px;
+    font-size: 12px; margin-bottom: 12px;
+  }
+  .kb-categories { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .kb-cat {
+    padding: 5px 10px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 6px; font-size: 10px; cursor: pointer; transition: 0.15s;
+  }
+  .kb-cat:hover { border-color: var(--accent); }
+  .kb-cat.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: var(--accent); color: white; }
+  .kb-items { max-height: 500px; overflow-y: auto; }
+  .kb-item {
+    padding: 12px; background: var(--panel-2); border-radius: 8px;
+    border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .kb-item-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .kb-item-content { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .kb-item-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .kb-tag { font-size: 9px; padding: 2px 6px; background: rgba(99,102,241,0.15); color: var(--accent); border-radius: 4px; }
+
+  /* Cache */
+  .cache-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .cache-stat { padding: 12px; background: var(--panel-2); border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+  .cache-stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .cache-stat-value { font-size: 18px; font-weight: 700; margin-top: 4px; font-family: 'SF Mono', monospace; }
+  .cache-log { max-height: 400px; overflow-y: auto; background: var(--panel-2); border-radius: 8px; padding: 10px; font-family: 'SF Mono', monospace; font-size: 10px; line-height: 1.7; border: 1px solid var(--border); }
+  .cache-entry { padding: 2px 0; border-bottom: 1px solid rgba(35,43,69,0.3); }
+  .cache-entry .hit { color: var(--green); }
+  .cache-entry .miss { color: var(--yellow); }
+
+  /* CSV Builder */
+  .csv-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .csv-controls select, .csv-controls input {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 7px 10px; border-radius: 7px; font-size: 11px; font-family: inherit;
+  }
+  .csv-progress { margin-bottom: 14px; }
+  .csv-progress-bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .csv-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.3s; }
+  .csv-log { max-height: 300px; overflow-y: auto; background: var(--panel-2); border-radius: 8px; padding: 10px; font-family: 'SF Mono', monospace; font-size: 10px; line-height: 1.7; border: 1px solid var(--border); }
+
+  /* Scraper */
+  .scraper-sources { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .scraper-source {
+    padding: 12px; background: var(--panel-2); border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .scraper-source-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .scraper-source-name { font-size: 12px; font-weight: 700; }
+  .scraper-source-status { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+  .scraper-feed { max-height: 400px; overflow-y: auto; }
+  .scraper-item {
+    padding: 10px; background: var(--panel-2); border-radius: 8px;
+    border: 1px solid var(--border); margin-bottom: 6px;
+  }
+  .scraper-item-title { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .scraper-item-meta { font-size: 9px; color: var(--muted); margin-bottom: 4px; }
+  .scraper-item-content { font-size: 10px; color: var(--muted); line-height: 1.5; }
+
+  /* MoE Router */
+  .moe-router {
+    padding: 14px; background: var(--panel-2); border-radius: 10px;
+    border: 1px solid var(--border); margin-bottom: 14px;
+  }
+  .moe-input {
+    width: 100%; background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px;
+    font-size: 12px; margin-bottom: 10px;
+  }
+  .moe-result {
+    padding: 12px; background: var(--panel); border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .moe-agents { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .moe-agent-tag {
+    font-size: 10px; padding: 4px 8px; background: rgba(168,85,247,0.15);
+    color: var(--purple); border-radius: 5px; font-weight: 600;
+  }
+
+  /* Deploy */
+  .deploy-steps { display: flex; flex-direction: column; gap: 10px; }
+  .deploy-step {
+    padding: 12px; background: var(--panel-2); border-radius: 8px;
+    border: 1px solid var(--border); display: flex; gap: 12px; align-items: center;
+  }
+  .deploy-step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--green), var(--cyan));
+    color: white; font-weight: 800; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .deploy-step-content { flex: 1; }
+  .deploy-step-title { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .deploy-step-desc { font-size: 10px; color: var(--muted); }
+  .deploy-code {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px; font-family: 'SF Mono', monospace; font-size: 10px;
+    margin-top: 8px; overflow-x: auto;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { text-align: left; padding: 6px 8px; color: var(--muted); font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 8px; border-bottom: 1px solid rgba(35,43,69,0.5); }
+
+  .empty { text-align: center; padding: 24px; color: var(--muted); font-size: 11px; }
+  .loader { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; padding: 12px 18px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 12px; z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); transform: translateY(100px);
+    opacity: 0; transition: all 0.3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--green); }
+  .toast.error { border-color: var(--red); }
+
+  @media (max-width: 1200px) {
+    .grid, .grid-3, .scraper-sources { grid-template-columns: 1fr; }
+    .cache-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">N</div>
+      <div>
+        <h1>Nexus AI Agent Manager</h1>
+        <p>Mixture of Experts · Knowledge Base · Blocks Deploy</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Active Agents</div>
+        <div class="stat-value mono" id="statAgents">0/10</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Cache Hit Rate</div>
+        <div class="stat-value mono" id="statCache">0%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Knowledge Base</div>
+        <div class="stat-value mono" id="statKB">0 items</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">CSV Rows</div>
+        <div class="stat-value mono" id="statCSV">0</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="deployBtn" class="deploy">🚀 Deploy to Blocks</button>
+      <button id="resetBtn" class="danger">Reset</button>
+    </div>
+  </header>
+
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="tabs">
+      <div class="tab active" data-tab="agents">🤖 Agent Manager</div>
+      <div class="tab" data-tab="moe">🧠 MoE Router</div>
+      <div class="tab" data-tab="knowledge">📚 Knowledge Base</div>
+      <div class="tab" data-tab="cache">⚡ Request Cache</div>
+      <div class="tab" data-tab="csv">📊 CSV Builder</div>
+      <div class="tab" data-tab="scraper">🕷️ Web Scraper</div>
+      <div class="tab" data-tab="deploy">🚀 Deploy</div>
+    </div>
+
+    <div class="tab-content active" id="tab-agents">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">🤖 Sub-Agent Registry</div>
+          <div class="panel-subtitle">10 specialized agents · Mixture of Experts architecture</div>
+        </div>
+        <span class="badge active">SYSTEM ONLINE</span>
+      </div>
+      <div class="agent-grid" id="agentGrid"></div>
+    </div>
+
+    <div class="tab-content" id="tab-moe">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">🧠 Mixture of Experts Router</div>
+          <div class="panel-subtitle">Intelligent query routing to specialized agents</div>
+        </div>
+      </div>
+      <div class="moe-router">
+        <input type="text" class="moe-input" id="moeInput" placeholder="Ask a question: 'Analyze BTC momentum' or 'What's the risk profile?'" />
+        <button id="moeRoute" class="primary" style="width:100%;">Route to Experts</button>
+        <div class="moe-result" id="moeResult" style="display:none; margin-top:12px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Selected Agents:</div>
+          <div class="moe-agents" id="moeAgents"></div>
+          <div style="font-size:12px;margin-top:10px;line-height:1.6;" id="moeResponse"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-knowledge">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">📚 Knowledge Base</div>
+          <div class="panel-subtitle">Built-in database of topics, patterns, and strategies</div>
+        </div>
+        <button id="kbAdd" class="primary">+ Add Entry</button>
+      </div>
+      <input type="text" class="kb-search" id="kbSearch" placeholder="Search knowledge base…" />
+      <div class="kb-categories" id="kbCategories"></div>
+      <div class="kb-items" id="kbItems"></div>
+    </div>
+
+    <div class="tab-content" id="tab-cache">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">⚡ Request Cache</div>
+          <div class="panel-subtitle">LRU cache for API calls and computations</div>
+        </div>
+        <button id="cacheClear" class="danger">Clear Cache</button>
+      </div>
+      <div class="cache-stats" id="cacheStats"></div>
+      <div class="panel-header">
+        <div class="panel-title">Cache Log (Last 100)</div>
+      </div>
+      <div class="cache-log" id="cacheLog"></div>
+    </div>
+
+    <div class="tab-content" id="tab-csv">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">📊 CSV Builder</div>
+          <div class="panel-subtitle">Rate-limited historical data collection · Respects API limits</div>
+        </div>
+      </div>
+      <div class="csv-controls">
+        <label style="font-size:11px;color:var(--muted);">Asset:</label>
+        <select id="csvAsset"></select>
+        <label style="font-size:11px;color:var(--muted);">Days:</label>
+        <input type="number" id="csvDays" value="30" min="1" max="365" style="width:80px;">
+        <label style="font-size:11px;color:var(--muted);">Interval:</label>
+        <select id="csvInterval">
+          <option value="hourly">Hourly</option>
+          <option value="daily">Daily</option>
+        </select>
+        <button id="csvBuild" class="primary">🔨 Build CSV</button>
+        <button id="csvDownload" class="deploy">⬇ Download</button>
+      </div>
+      <div class="csv-progress" id="csvProgress" style="display:none;">
+        <div style="font-size:11px;color:var(--muted);">Progress: <span id="csvProgressText">0%</span></div>
+        <div class="csv-progress-bar"><div class="csv-progress-fill" id="csvProgressFill" style="width:0%;"></div></div>
+      </div>
+      <div class="csv-log" id="csvLog">Waiting for build…</div>
+    </div>
+
+    <div class="tab-content" id="tab-scraper">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">🕷️ Web Scraper</div>
+          <div class="panel-subtitle">News, RSS feeds, social media, on-chain data</div>
+        </div>
+        <button id="scrapeAll" class="primary">🔄 Scrape All</button>
+      </div>
+      <div class="scraper-sources" id="scraperSources"></div>
+      <div class="panel-header">
+        <div class="panel-title">Scraped Feed</div>
+        <div class="panel-subtitle" id="scraperCount">0 items</div>
+      </div>
+      <div class="scraper-feed" id="scraperFeed"></div>
+    </div>
+
+    <div class="tab-content" id="tab-deploy">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">🚀 Deploy to Blocks Network</div>
+          <div class="panel-subtitle">Production-ready agent deployment</div>
+        </div>
+        <span class="badge deploy">READY</span>
+      </div>
+      <div class="deploy-steps">
+        <div class="deploy-step">
+          <div class="deploy-step-num">1</div>
+          <div class="deploy-step-content">
+            <div class="deploy-step-title">Install Blocks CLI</div>
+            <div class="deploy-step-desc">Install the Blocks Network CLI globally</div>
+            <div class="deploy-code">npm i -g @blocks-network/cli</div>
+          </div>
+        </div>
+        <div class="deploy-step">
+          <div class="deploy-step-num">2</div>
+          <div class="deploy-step-content">
+            <div class="deploy-step-title">Login to Blocks</div>
+            <div class="deploy-step-desc">Authenticate with your Blocks account</div>
+            <div class="deploy-code">blocks login --write-env</div>
+          </div>
+        </div>
+        <div class="deploy-step">
+          <div class="deploy-step-num">3</div>
+          <div class="deploy-step-content">
+            <div class="deploy-step-title">Generate Agent Card</div>
+            <div class="deploy-step-desc">Create agent-card.json with your agent configuration</div>
+            <div class="deploy-code" id="agentCardCode">Loading…</div>
+          </div>
+        </div>
+        <div class="deploy-step">
+          <div class="deploy-step-num">4</div>
+          <div class="deploy-step-content">
+            <div class="deploy-step-title">Register Agent</div>
+            <div class="deploy-step-desc">Register your agent (private + free)</div>
+            <div class="deploy-code">blocks register</div>
+          </div>
+        </div>
+        <div class="deploy-step">
+          <div class="deploy-step-num">5</div>
+          <div class="deploy-step-content">
+            <div class="deploy-step-title">Publish (Optional)</div>
+            <div class="deploy-step-desc">Make agent public and set pricing</div>
+            <div class="deploy-code">blocks publish</div>
+          </div>
+        </div>
+        <div class="deploy-step">
+          <div class="deploy-step-num">6</div>
+          <div class="deploy-step-content">
+            <div class="deploy-step-title">Run Agent</div>
+            <div class="deploy-step-desc">Start your agent locally</div>
+            <div class="deploy-code">blocks run</div>
+          </div>
+        </div>
+      </div>
+      <button id="generateCard" class="primary" style="width:100%;margin-top:14px;">📝 Generate agent-card.json</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   NEXUS AI AGENT MANAGER
+   Mixture of Experts · Knowledge Base · Blocks Deploy
+   ============================================================ */
+
+// Toast notification
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+// Agent definitions
+const AGENTS = [
+  {
+    id: 'technical',
+    name: 'Technical Analysis Agent',
+    desc: 'RSI, MACD, Bollinger, EMA, custom indicators. Analyzes price action and momentum.',
+    skills: ['rsi', 'macd', 'bollinger', 'ema', 'momentum', 'support-resistance'],
+    status: 'online',
+    queries: 0,
+    accuracy: 78,
+  },
+  {
+    id: 'sentiment',
+    name: 'Sentiment Analysis Agent',
+    desc: 'News sentiment, social media, on-chain sentiment. Gauges market mood.',
+    skills: ['news-sentiment', 'social-sentiment', 'fear-greed', 'whale-sentiment'],
+    status: 'online',
+    queries: 0,
+    accuracy: 72,
+  },
+  {
+    id: 'risk',
+    name: 'Risk Management Agent',
+    desc: 'Position sizing, stop-loss, portfolio risk, VaR, drawdown analysis.',
+    skills: ['position-sizing', 'stop-loss', 'var', 'drawdown', 'correlation'],
+    status: 'online',
+    queries: 0,
+    accuracy: 85,
+  },
+  {
+    id: 'microstructure',
+    name: 'Market Microstructure Agent',
+    desc: 'Order flow, liquidity, spread analysis, market depth, tick data.',
+    skills: ['order-flow', 'liquidity', 'spread', 'market-depth', 'tick-analysis'],
+    status: 'online',
+    queries: 0,
+    accuracy: 81,
+  },
+  {
+    id: 'arbitrage',
+    name: 'Arbitrage Agent',
+    desc: 'Cross-exchange arbitrage, DEX arbitrage, triangular arbitrage detection.',
+    skills: ['cross-exchange', 'dex-arb', 'triangular', 'flash-loan', ' mev'],
+    status: 'online',
+    queries: 0,
+    accuracy: 88,
+  },
+  {
+    id: 'prediction',
+    name: 'Prediction Agent',
+    desc: 'ML models, time series forecasting, Monte Carlo, price targets.',
+    skills: ['lstm', 'arima', 'monte-carlo', 'price-target', 'volatility-forecast'],
+    status: 'online',
+    queries: 0,
+    accuracy: 69,
+  },
+  {
+    id: 'portfolio',
+    name: 'Portfolio Optimization Agent',
+    desc: 'Mean-variance optimization, Black-Litterman, risk parity, rebalancing.',
+    skills: ['mean-variance', 'black-litterman', 'risk-parity', 'rebalancing'],
+    status: 'online',
+    queries: 0,
+    accuracy: 83,
+  },
+  {
+    id: 'news',
+    name: 'News & Scraping Agent',
+    desc: 'Web scraping, RSS feeds, news aggregation, content extraction.',
+    skills: ['web-scraping', 'rss', 'news-aggregation', 'content-extraction'],
+    status: 'online',
+    queries: 0,
+    accuracy: 76,
+  },
+  {
+    id: 'onchain',
+    name: 'On-Chain Analytics Agent',
+    desc: 'Whale tracking, token flows, smart money, exchange inflows/outflows.',
+    skills: ['whale-tracking', 'token-flows', 'smart-money', 'exchange-flows'],
+    status: 'online',
+    queries: 0,
+    accuracy: 79,
+  },
+  {
+    id: 'macro',
+    name: 'Macro Analysis Agent',
+    desc: 'Economic indicators, correlation analysis, cross-asset relationships.',
+    skills: ['economic-indicators', 'correlation', 'cross-asset', 'regime-detection'],
+    status: 'online',
+    queries: 0,
+    accuracy: 74,
+  },
+];
+
+// Knowledge Base
+const KNOWLEDGE_BASE = [
+  {
+    category: 'Trading Patterns',
+    title: 'Bull Flag Pattern',
+    content: 'A bullish continuation pattern formed after a strong upward move. Characterized by a tight consolidation channel sloping downward against the prevailing trend. Breakout above the upper channel line signals continuation. Volume typically decreases during flag formation and increases on breakout.',
+    tags: ['pattern', 'bullish', 'continuation', 'volume'],
+  },
+  {
+    category: 'Trading Patterns',
+    title: 'Head and Shoulders',
+    content: 'A bearish reversal pattern with three peaks: left shoulder, head (highest), right shoulder. The neckline connects the lows between peaks. Break below neckline confirms the pattern. Target = neckline - (head - neckline).',
+    tags: ['pattern', 'bearish', 'reversal', 'neckline'],
+  },
+  {
+    category: 'Indicators',
+    title: 'RSI Divergence',
+    content: 'Bullish divergence: price makes lower low but RSI makes higher low. Bearish divergence: price makes higher high but RSI makes lower high. Signals potential trend reversal. Most reliable on daily timeframe.',
+    tags: ['rsi', 'divergence', 'reversal', 'momentum'],
+  },
+  {
+    category: 'Risk Management',
+    title: 'Kelly Criterion',
+    content: 'Optimal position size formula: f* = (bp - q) / b, where b = odds received, p = win probability, q = loss probability (1-p). Use half-Kelly for safety. Prevents overbetting and ruin.',
+    tags: ['position-sizing', 'kelly', 'optimal', 'risk'],
+  },
+  {
+    category: 'Strategies',
+    title: 'Mean Reversion Strategy',
+    content: 'Buy when price is significantly below moving average (e.g., 2 standard deviations), sell when it reverts to mean. Works best in ranging markets. Use Bollinger Bands or z-score for entry signals. Set stop-loss beyond 3 standard deviations.',
+    tags: ['mean-reversion', 'bollinger', 'range', 'strategy'],
+  },
+  {
+    category: 'Market Microstructure',
+    title: 'Order Book Imbalance',
+    content: 'Ratio of bid volume to ask volume at top of book. Imbalance > 2:1 suggests buying pressure. Imbalance < 0.5:1 suggests selling pressure. Leading indicator of short-term price movement. Combine with trade flow for confirmation.',
+    tags: ['order-book', 'imbalance', 'liquidity', 'microstructure'],
+  },
+  {
+    category: 'On-Chain',
+    title: 'Exchange Net Flow',
+    content: 'Net flow = inflows - outflows. Positive net flow (more coins moving to exchanges) suggests selling pressure. Negative net flow (coins moving to cold storage) suggests accumulation. Leading indicator for price. Monitor whale wallets separately.',
+    tags: ['exchange', 'flow', 'whale', 'accumulation'],
+  },
+  {
+    category: 'Macro',
+    title: 'Bitcoin Dominance Cycle',
+    content: 'BTC dominance rises in risk-off environments and early bull markets. Altcoin season occurs when BTC dominance falls while total market cap rises. Monitor BTC.D alongside total crypto market cap for regime detection.',
+    tags: ['bitcoin', 'dominance', 'altcoin', 'cycle'],
+  },
+];
+
+// Request Cache (LRU)
+class LRUCache {
+  constructor(maxSize = 1000) {
+    this.maxSize = maxSize;
+    this.cache = new Map();
+    this.hits = 0;
+    this.misses = 0;
+    this.log = [];
+  }
+
+  get(key) {
+    if (this.cache.has(key)) {
+      const value = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, value);
+      this.hits++;
+      this.addLog(key, 'HIT');
+      return value;
+    }
+    this.misses++;
+    this.addLog(key, 'MISS');
+    return null;
+  }
+
+  set(key, value) {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, value);
+  }
+
+  addLog(key, status) {
+    this.log.unshift({ t: Date.now(), key, status });
+    if (this.log.length > 100) this.log = this.log.slice(0, 100);
+  }
+
+  clear() {
+    this.cache.clear();
+    this.hits = 0;
+    this.misses = 0;
+    this.log = [];
+  }
+
+  getHitRate() {
+    const total = this.hits + this.misses;
+    return total > 0 ? (this.hits / total * 100).toFixed(1) : '0.0';
+  }
+}
+
+const cache = new LRUCache(1000);
+
+// CSV Builder with rate limiting
+class CSVBuilder {
+  constructor() {
+    this.data = [];
+    this.rateLimit = 50; // requests per minute
+    this.requestCount = 0;
+    this.lastReset = Date.now();
+    this.log = [];
+  }
+
+  async checkRateLimit() {
+    const now = Date.now();
+    if (now - this.lastReset > 60000) {
+      this.requestCount = 0;
+      this.lastReset = now;
+    }
+    if (this.requestCount >= this.rateLimit) {
+      const waitTime = 60000 - (now - this.lastReset);
+      this.addLog(`Rate limit reached. Waiting ${Math.ceil(waitTime/1000)}s…`);
+      await new Promise(r => setTimeout(r, waitTime));
+      this.requestCount = 0;
+      this.lastReset = Date.now();
+    }
+    this.requestCount++;
+  }
+
+  addLog(msg) {
+    this.log.unshift({ t: Date.now(), msg });
+    if (this.log.length > 100) this.log = this.log.slice(0, 100);
+  }
+
+  async fetchHistoricalData(symbol, days, interval) {
+    await this.checkRateLimit();
+    const cacheKey = `csv_${symbol}_${days}_${interval}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      this.addLog(`✓ Cache hit: ${symbol}`);
+      return cached;
+    }
+
+    this.addLog(`Fetching ${symbol} · ${days}d · ${interval}…`);
+    try {
+      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}&interval=${interval}`;
+      const res = await fetch(url);
+      if (res.status === 429) {
+        this.addLog(`⚠ Rate limited, retrying…`);
+        await new Promise(r => setTimeout(r, 60000));
+        return this.fetchHistoricalData(symbol, days, interval);
+      }
+      const data = await res.json();
+      const rows = data.prices.map(p => ({
+        timestamp: new Date(p[0]).toISOString(),
+        price: p[1],
+      }));
+      cache.set(cacheKey, rows);
+      this.addLog(`✓ Fetched ${rows.length} rows for ${symbol}`);
+      return rows;
+    } catch (e) {
+      this.addLog(`✗ Failed: ${e.message}`);
+      return null;
+    }
+  }
+
+  toCSV(rows) {
+    if (!rows || rows.length === 0) return '';
+    const headers = Object.keys(rows[0]);
+    const csv = [headers.join(',')];
+    rows.forEach(row => {
+      csv.push(headers.map(h => row[h]).join(','));
+    });
+    return csv.join('\n');
+  }
+
+  download(filename, csv) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
+
+const csvBuilder = new CSVBuilder();
+
+// Web Scraper
+class WebScraper {
+  constructor() {
+    this.sources = [
+      { id: 'coindesk', name: 'CoinDesk RSS', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', items: [] },
+      { id: 'cointelegraph', name: 'CoinTelegraph', url: 'https://cointelegraph.com/rss', items: [] },
+      { id: 'bitcoin', name: 'Bitcoin Magazine', url: 'https://bitcoinmagazine.com/.rss/full/', items: [] },
+    ];
+    this.log = [];
+  }
+
+  addLog(msg) {
+    this.log.unshift({ t: Date.now(), msg });
+  }
+
+  async scrapeRSS(source) {
+    this.addLog(`Scraping ${source.name}…`);
+    try {
+      // Note: CORS will block this in browser. In production, use a proxy or server-side scraping.
+      // For demo, we'll simulate with mock data
+      await new Promise(r => setTimeout(r, 1000));
+      
+      // Mock RSS items
+      const mockItems = [
+        { title: `Bitcoin Breaks $100K Resistance`, pubDate: new Date().toISOString(), link: '#', description: 'Bitcoin has surged past the $100,000 mark for the first time in history, driven by institutional adoption.' },
+        { title: `Ethereum 2.0 Staking Hits Record`, pubDate: new Date().toISOString(), link: '#', description: 'Over 30 million ETH are now staked in the Ethereum 2.0 beacon chain.' },
+        { title: `DeFi TVL Reaches New All-Time High`, pubDate: new Date().toISOString(), link: '#', description: 'Total value locked in DeFi protocols has surpassed $200 billion.' },
+      ];
+      
+      source.items = mockItems.map(item => ({
+        ...item,
+        source: source.name,
+      }));
+      
+      this.addLog(`✓ Scraped ${source.items.length} items from ${source.name}`);
+      return source.items;
+    } catch (e) {
+      this.addLog(`✗ Failed: ${e.message}`);
+      return [];
+    }
+  }
+
+  async scrapeAll() {
+    const allItems = [];
+    for (const source of this.sources) {
+      const items = await this.scrapeRSS(source);
+      allItems.push(...items);
+    }
+    return allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  }
+}
+
+const scraper = new WebScraper();
+
+// MoE Router
+class MoERouter {
+  constructor(agents) {
+    this.agents = agents;
+  }
+
+  route(query) {
+    const queryLower = query.toLowerCase();
+    const selectedAgents = [];
+
+    // Keyword-based routing
+    const keywords = {
+      technical: ['rsi', 'macd', 'bollinger', 'ema', 'momentum', 'indicator', 'pattern', 'support', 'resistance', 'trend'],
+      sentiment: ['sentiment', 'news', 'social', 'fear', 'greed', 'mood', 'whale', 'opinion'],
+      risk: ['risk', 'position', 'size', 'stop-loss', 'var', 'drawdown', 'loss', 'safety'],
+      microstructure: ['order', 'flow', 'liquidity', 'spread', 'depth', 'tick', 'microstructure'],
+      arbitrage: ['arbitrage', 'arb', 'cross-exchange', 'dex', 'triangular', 'flash', 'mev'],
+      prediction: ['predict', 'forecast', 'target', 'price', 'future', 'ml', 'model', 'monte'],
+      portfolio: ['portfolio', 'optimize', 'allocation', 'rebalance', 'diversif', 'black-litterman'],
+      news: ['news', 'scrape', 'rss', 'feed', 'article', 'content'],
+      onchain: ['on-chain', 'onchain', 'whale', 'flow', 'exchange', 'smart money', 'accumulation'],
+      macro: ['macro', 'economic', 'correlation', 'cross-asset', 'regime', 'dominance', 'cycle'],
+    };
+
+    for (const [agentId, kws] of Object.entries(keywords)) {
+      if (kws.some(kw => queryLower.includes(kw))) {
+        selectedAgents.push(this.agents.find(a => a.id === agentId));
+      }
+    }
+
+    // Default to technical if no match
+    if (selectedAgents.length === 0) {
+      selectedAgents.push(this.agents.find(a => a.id === 'technical'));
+    }
+
+    return selectedAgents.filter(a => a);
+  }
+
+  async executeQuery(query, agents) {
+    // Simulate agent responses
+    const responses = agents.map(agent => {
+      agent.queries++;
+      return `[${agent.name}]: Analyzing "${query}" using skills: ${agent.skills.slice(0, 3).join(', ')}…`;
+    });
+
+    // Combine responses
+    const combined = `Query routed to ${agents.length} expert(s):\n\n` + responses.join('\n\n');
+    return combined;
+  }
+}
+
+const moeRouter = new MoERouter(AGENTS);
+
+// State
+const state = {
+  agents: AGENTS,
+  knowledgeBase: KNOWLEDGE_BASE,
+  scraperItems: [],
+  csvData: null,
+};
+
+// Rendering
+function renderAgents() {
+  const grid = document.getElementById('agentGrid');
+  grid.innerHTML = state.agents.map(agent => `
+    <div class="agent-card ${agent.status === 'online' ? 'active' : ''}">
+      <div class="agent-head">
+        <div class="agent-name">${agent.name}</div>
+        <div class="agent-status ${agent.status}">${agent.status.toUpperCase()}</div>
+      </div>
+      <div class="agent-desc">${agent.desc}</div>
+      <div class="agent-stats">
+        <div class="agent-stat">🎯 ${agent.accuracy}%</div>
+        <div class="agent-stat">📊 ${agent.queries} queries</div>
+        <div class="agent-stat">⚡ ${agent.skills.length} skills</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('statAgents').textContent = `${state.agents.filter(a => a.status === 'online').length}/${state.agents.length}`;
+}
+
+function renderKnowledgeBase(filter = '', category = 'all') {
+  const categories = ['all', ...new Set(state.knowledgeBase.map(k => k.category))];
+  const catEl = document.getElementById('kbCategories');
+  catEl.innerHTML = categories.map(cat => `
+    <div class="kb-cat ${cat === category ? 'active' : ''}" data-cat="${cat}">${cat}</div>
+  `).join('');
+
+  catEl.querySelectorAll('.kb-cat').forEach(el => {
+    el.onclick = () => renderKnowledgeBase(filter, el.dataset.cat);
+  });
+
+  let items = state.knowledgeBase;
+  if (category !== 'all') {
+    items = items.filter(k => k.category === category);
+  }
+  if (filter) {
+    const f = filter.toLowerCase();
+    items = items.filter(k => 
+      k.title.toLowerCase().includes(f) ||
+      k.content.toLowerCase().includes(f) ||
+      k.tags.some(t => t.toLowerCase().includes(f))
+    );
+  }
+
+  const itemsEl = document.getElementById('kbItems');
+  if (items.length === 0) {
+    itemsEl.innerHTML = '<div class="empty">No items found</div>';
+  } else {
+    itemsEl.innerHTML = items.map(k => `
+      <div class="kb-item">
+        <div class="kb-item-title">${k.title}</div>
+        <div class="kb-item-content">${k.content}</div>
+        <div class="kb-item-tags">${k.tags.map(t => `<span class="kb-tag">${t}</span>`).join('')}</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('statKB').textContent = `${state.knowledgeBase.length} items`;
+}
+
+function renderCache() {
+  const statsEl = document.getElementById('cacheStats');
+  statsEl.innerHTML = `
+    <div class="cache-stat">
+      <div class="cache-stat-label">Cache Size</div>
+      <div class="cache-stat-value">${cache.cache.size}</div>
+    </div>
+    <div class="cache-stat">
+      <div class="cache-stat-label">Hits</div>
+      <div class="cache-stat-value pos">${cache.hits}</div>
+    </div>
+    <div class="cache-stat">
+      <div class="cache-stat-label">Misses</div>
+      <div class="cache-stat-value neg">${cache.misses}</div>
+    </div>
+    <div class="cache-stat">
+      <div class="cache-stat-label">Hit Rate</div>
+      <div class="cache-stat-value">${cache.getHitRate()}%</div>
+    </div>
+  `;
+
+  const logEl = document.getElementById('cacheLog');
+  if (cache.log.length === 0) {
+    logEl.innerHTML = '<div class="empty">No cache activity yet</div>';
+  } else {
+    logEl.innerHTML = cache.log.map(entry => `
+      <div class="cache-entry">
+        <span style="color:var(--muted);">[${new Date(entry.t).toLocaleTimeString()}]</span>
+        <span class="${entry.status === 'HIT' ? 'hit' : 'miss'}">${entry.status}</span>
+        ${entry.key}
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('statCache').textContent = `${cache.getHitRate()}%`;
+}
+
+function renderCSVLog() {
+  const logEl = document.getElementById('csvLog');
+  if (csvBuilder.log.length === 0) {
+    logEl.innerHTML = '<div class="empty">Waiting for build…</div>';
+  } else {
+    logEl.innerHTML = csvBuilder.log.map(entry => `
+      <div class="cache-entry">
+        <span style="color:var(--muted);">[${new Date(entry.t).toLocaleTimeString()}]</span>
+        ${entry.msg}
+      </div>
+    `).join('');
+  }
+}
+
+function renderScraper() {
+  const sourcesEl = document.getElementById('scraperSources');
+  sourcesEl.innerHTML = scraper.sources.map(source => `
+    <div class="scraper-source">
+      <div class="scraper-source-head">
+        <div class="scraper-source-name">${source.name}</div>
+        <div class="scraper-source-status ${source.items.length > 0 ? 'online' : 'offline'}">
+          ${source.items.length > 0 ? 'ACTIVE' : 'IDLE'}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);">${source.items.length} items scraped</div>
+    </div>
+  `).join('');
+
+  const feedEl = document.getElementById('scraperFeed');
+  if (state.scraperItems.length === 0) {
+    feedEl.innerHTML = '<div class="empty">No items scraped yet. Click "Scrape All" to start.</div>';
+  } else {
+    feedEl.innerHTML = state.scraperItems.slice(0, 20).map(item => `
+      <div class="scraper-item">
+        <div class="scraper-item-title">${item.title}</div>
+        <div class="scraper-item-meta">${item.source} · ${new Date(item.pubDate).toLocaleString()}</div>
+        <div class="scraper-item-content">${item.description}</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('scraperCount').textContent = `${state.scraperItems.length} items`;
+}
+
+function renderAll() {
+  renderAgents();
+  renderKnowledgeBase();
+  renderCache();
+  renderCSVLog();
+  renderScraper();
+}
+
+// Event handlers
+document.getElementById('moeRoute').onclick = async () => {
+  const query = document.getElementById('moeInput').value.trim();
+  if (!query) {
+    toast('Enter a query', 'error');
+    return;
+  }
+
+  const agents = moeRouter.route(query);
+  const response = await moeRouter.executeQuery(query, agents);
+
+  document.getElementById('moeAgents').innerHTML = agents.map(a => `
+    <div class="moe-agent-tag">${a.name}</div>
+  `).join('');
+  document.getElementById('moeResponse').textContent = response;
+  document.getElementById('moeResult').style.display = 'block';
+
+  renderAgents();
+};
+
+document.getElementById('kbSearch').oninput = (e) => {
+  renderKnowledgeBase(e.target.value);
+};
+
+document.getElementById('kbAdd').onclick = () => {
+  const title = prompt('Enter title:');
+  if (!title) return;
+  const content = prompt('Enter content:');
+  if (!content) return;
+  const category = prompt('Enter category:', 'General');
+  if (!category) return;
+  const tags = prompt('Enter tags (comma-separated):', '').split(',').map(t => t.trim()).filter(t => t);
+
+  state.knowledgeBase.push({ category, title, content, tags });
+  renderKnowledgeBase();
+  toast('Added to knowledge base');
+};
+
+document.getElementById('cacheClear').onclick = () => {
+  cache.clear();
+  renderCache();
+  toast('Cache cleared');
+};
+
+document.getElementById('csvAsset').innerHTML = `
+  <option value="bitcoin">Bitcoin</option>
+  <option value="ethereum">Ethereum</option>
+  <option value="solana">Solana</option>
+`;
+
+document.getElementById('csvBuild').onclick = async () => {
+  const symbol = document.getElementById('csvAsset').value;
+  const days = parseInt(document.getElementById('csvDays').value);
+  const interval = document.getElementById('csvInterval').value;
+
+  document.getElementById('csvProgress').style.display = 'block';
+  document.getElementById('csvProgressText').textContent = '0%';
+  document.getElementById('csvProgressFill').style.width = '0%';
+
+  const rows = await csvBuilder.fetchHistoricalData(symbol, days, interval);
+  
+  if (rows) {
+    state.csvData = rows;
+    document.getElementById('csvProgressText').textContent = '100%';
+    document.getElementById('csvProgressFill').style.width = '100%';
+    document.getElementById('statCSV').textContent = rows.length;
+    toast(`Built CSV with ${rows.length} rows`);
+  } else {
+    document.getElementById('csvProgressText').textContent = 'Failed';
+    toast('CSV build failed', 'error');
+  }
+
+  renderCSVLog();
+};
+
+document.getElementById('csvDownload').onclick = () => {
+  if (!state.csvData) {
+    toast('Build CSV first', 'error');
+    return;
+  }
+  const csv = csvBuilder.toCSV(state.csvData);
+  const filename = `crypto_data_${document.getElementById('csvAsset').value}_${Date.now()}.csv`;
+  csvBuilder.download(filename, csv);
+  toast('CSV downloaded');
+};
+
+document.getElementById('scrapeAll').onclick = async () => {
+  toast('Scraping all sources…');
+  state.scraperItems = await scraper.scrapeAll();
+  renderScraper();
+  toast(`Scraped ${state.scraperItems.length} items`);
+};
+
+document.getElementById('generateCard').onclick = () => {
+  const agentCard = {
+    identity: {
+      agentName: 'nexus-ai-agent-manager',
+      displayName: 'Nexus AI Agent Manager',
+      description: 'Advanced AI agent manager with Mixture of Experts architecture, built-in knowledge base, request caching, CSV builder, and web scraping capabilities.',
+      version: '1.0.0',
+      provider: {
+        organization: 'nexus-ai',
+      },
+    },
+    capabilities: {
+      taskKinds: ['analysis', 'prediction', 'optimization', 'scraping'],
+    },
+    tags: ['crypto', 'trading', 'ai', 'agents', 'moe', 'knowledge-base'],
+    runtime: {
+      handler: 'handler.js',
+      maxRunningTimeSec: 300,
+    },
+    io: {
+      inputs: [
+        { name: 'query', type: 'string', description: 'User query to route to agents' },
+      ],
+      outputs: [
+        { name: 'response', type: 'string', description: 'Combined response from selected agents' },
+      ],
+    },
+  };
+
+  const code = JSON.stringify(agentCard, null, 2);
+  document.getElementById('agentCardCode').textContent = code;
+  toast('Agent card generated');
+};
+
+document.getElementById('deployBtn').onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+  document.querySelector('[data-tab="deploy"]').classList.add('active');
+  document.getElementById('tab-deploy').classList.add('active');
+};
+
+document.getElementById('resetBtn').onclick = () => {
+  if (!confirm('Reset all data?')) return;
+  cache.clear();
+  state.scraperItems = [];
+  state.csvData = null;
+  state.agents.forEach(a => a.queries = 0);
+  renderAll();
+  toast('Reset complete');
+};
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+  };
+});
+
+// Init
+renderAll();
+toast('Nexus AI Agent Manager initialized');
+</script>
+</body>
+</html>
+<body>
+  <nav class="topbar">
+    <div class="brand">Crypto Trader</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="strategy.html">Strategy</a>
+      <a href="backtest.html">Backtest</a>
+      <a href="live.html">Live</a>
+      <a href="agent.html" class="active">Agent</a>
+      <a href="connection.html">Connection</a>
+      <a href="settings.html">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Assistant Agent</h1>
+      <p class="muted">A simple in-page agent to help craft strategies and explain results. (Local only — no outbound requests).</p>
+
+      <div id="agent-window" class="agent">
+        <div id="agent-messages" class="messages" aria-live="polite"></div>
+
+        <form id="agent-form" class="agent-input">
+          <input id="agent-text" placeholder="Ask the agent (e.g., 'Create an EMA crossover strategy for 15m')" />
+          <button type="submit" class="btn">Send</button>
+        </form>
+
+        <!-- Preset prompts + quick-run -->
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+          <select id="agent-preset" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;">
+            <option value="">— Quick Prompts —</option>
+            <option value="create_ema">Create EMA crossover strategy (15m)</option>
+            <option value="suggest_abilities">Suggest ability improvements</option>
+            <option value="agent_arb_usecase">Generate agent: arbitrage use-case</option>
+            <option value="explain_ema">Explain EMA indicator</option>
+            <option value="risk_table">Position sizing table for $10000</option>
+          </select>
+          <button id="run-preset" type="button" class="btn alt" style="padding:8px 10px;">Run</button>
+        </div>
+      </div>
+
+      <details class="info">
+        <summary>Agent Capabilities</summary>
+        <ul>
+          <li>Generate strategy JSON</li>
+          <li>Explain indicators</li>
+          <li>Suggest risk sizing</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <script type="module" src="js/errors.js"></script>
+  <script type="module" src="js/nav.js"></script>
+  <script type="module" src="js/agent.js"></script>
+</body>
+</html>

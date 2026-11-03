@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Backtest — Crypto Trader</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="brand">Crypto Trader</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="strategy.html">Strategy</a>
+      <a href="backtest.html" class="active">Backtest</a>
+      <a href="live.html">Live</a>
+      <a href="agent.html">Agent</a>
+      <a href="connection.html">Connection</a>
+      <a href="settings.html">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Backtester</h1>
+      <div class="form-grid">
+        <label>Strategy JSON (paste)
+          <textarea id="bt-strat" rows="6" placeholder='{"name":"EMA","fast":12,"slow":26}'></textarea>
+        </label>
+        <label>Symbol
+          <input id="bt-symbol" value="BTC/USDT">
+        </label>
+        <label>Period (candles)
+          <input id="bt-period" type="number" value="500" min="100">
+        </label>
+        <div class="full">
+          <button id="run-backtest" class="btn">Run Backtest</button>
+        </div>
+      </div>
+
+      <div id="bt-results" class="output" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/errors.js"></script>
+  <script type="module" src="js/nav.js"></script>
+  <script type="module" src="js/backtest.js"></script>
+</body>
+</html>

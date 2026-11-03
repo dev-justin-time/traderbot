@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trader — Crypto Trader</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="brand">Crypto Trader</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="strategy.html">Strategy</a>
+      <a href="backtest.html">Backtest</a>
+      <a href="live.html">Live</a>
+      <a href="agent.html">Agent</a>
+      <a href="connection.html">Connection</a>
+      <a href="trader.html" class="active">Trader</a>
+      <a href="agent_manager.html">Agent Manager</a>
+      <a href="settings.html">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Trader (Placeholder)</h1>
+      <p class="muted">A minimal simulated trading panel for testing orders and loading saved strategies.</p>
+
+      <div class="form-grid">
+        <label>Selected strategy JSON
+          <textarea id="trader-strat" rows="6" placeholder="Load a strategy from Agent Manager or Strategy page"></textarea>
+        </label>
+
+        <label>Symbol
+          <input id="trader-symbol" value="BTC/USDT">
+        </label>
+
+        <label>Amount
+          <input id="trader-amount" type="number" value="0.001" step="0.0001">
+        </label>
+
+        <div class="full">
+          <button id="btn-buy" class="btn">Simulate Buy</button>
+          <button id="btn-sell" class="btn alt">Simulate Sell</button>
+        </div>
+      </div>
+
+      <div id="trader-log" class="output" aria-live="polite">No trades yet.</div>
+    </section>
+  </main>
+
+  <script type="module" src="js/errors.js"></script>
+  <script type="module" src="js/nav.js"></script>
+  <script>
+    const logEl = document.getElementById('trader-log');
+    function appendLog(txt){ logEl.textContent = txt + "\n\n" + logEl.textContent; }
+    document.getElementById('btn-buy').addEventListener('click', ()=>{
+      const sym = document.getElementById('trader-symbol').value;
+      const amt = Number(document.getElementById('trader-amount').value)||0;
+      const strat = document.getElementById('trader-strat').value || localStorage.getItem('last_strategy') || '{}';
+      appendLog(`BUY simulated ${amt} ${sym}\nusing strategy: ${strat}`);
+    });
+    document.getElementById('btn-sell').addEventListener('click', ()=>{
+      const sym = document.getElementById('trader-symbol').value;
+      const amt = Number(document.getElementById('trader-amount').value)||0;
+      const strat = document.getElementById('trader-strat').value || localStorage.getItem('last_strategy') || '{}';
+      appendLog(`SELL simulated ${amt} ${sym}\nusing strategy: ${strat}`);
+    });
+
+    // try to preload last_strategy
+    try{
+      const s = localStorage.getItem('last_strategy');
+      if(s) document.getElementById('trader-strat').value = s;
+    }catch(e){}
+  </script>
+</body>
+</html>

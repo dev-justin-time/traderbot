@@ -1,0 +1,32 @@
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --muted:#666; --accent:#0b6;
+  --text:#111; --border:#e6e9ee; --danger:#e74c3c;
+  --maxw:1100px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(#fff,#fbfdff);border-bottom:1px solid var(--border);position:sticky;top:0}
+.topbar .brand{font-weight:700}
+.topbar .links a{margin-left:12px;text-decoration:none;color:var(--muted);padding:6px 8px;border-radius:6px}
+.topbar .links a.active{background:#e9fff5;color:var(--text);border:1px solid #dff7ea}
+.container{max-width:var(--maxw);margin:18px auto;padding:0 14px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:0 6px 18px rgba(20,20,40,0.03)}
+.btn{background:var(--accent);color:white;padding:10px 14px;border-radius:8px;border:none;cursor:pointer}
+.btn.alt{background:transparent;color:var(--text);border:1px solid var(--border)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:start}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--muted)}
+input,select,textarea{padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff}
+.full{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-start}
+.output{background:#0f1720;color:#e6ffed;padding:12px;border-radius:8px;margin-top:12px;white-space:pre-wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:12px}
+.card{display:block;padding:12px;border-radius:8px;border:1px solid var(--border);text-decoration:none;color:inherit;background:linear-gradient(#fff,#fbfdff)}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.card-stream{flex:1;min-width:140px;background:#fff;padding:10px;border-radius:8px;border:1px solid var(--border)}
+.big{font-size:28px;font-weight:700}
+.muted{color:var(--muted);font-size:13px}
+.agent{display:flex;flex-direction:column;gap:8px}
+.messages{min-height:140px;background:#0b1220;color:#dff6ff;padding:12px;border-radius:8px;overflow:auto}
+.agent-input{display:flex;gap:8px}
+.agent-input input{flex:1}
+.info{margin-top:10px}

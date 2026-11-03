@@ -1,0 +1,12 @@
+/* page-specific tweaks and responsive rules */
+@media (max-width:720px){
+  .topbar{padding:10px}
+  .topbar .links{display:flex;gap:6px;overflow:auto}
+  .form-grid{grid-template-columns:1fr}
+  .full{flex-direction:column}
+  .grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:420px){
+  .grid{grid-template-columns:1fr}
+  .big{font-size:22px}
+}

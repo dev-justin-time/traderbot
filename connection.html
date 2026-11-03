@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Connection · Agents — Nexus AI</title>
+  <link rel="stylesheet" href="css/common.css">
+  <style>
+    body{background:linear-gradient(180deg,#07101a,#081223);color:#e6eef8;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;min-height:100vh;margin:0}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:transparent;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .brand{font-weight:700}
+    .container{max-width:980px;margin:18px auto;padding:12px}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:12px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .agents-list{max-height:64vh;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+    .agent-card{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .agent-card.active{outline:2px solid rgba(99,102,241,0.25);background:linear-gradient(90deg,rgba(99,102,241,0.03),transparent)}
+    .status {font-size:12px;color:#9fb0d9}
+    .conn {display:flex;align-items:center;gap:8px}
+    .dot{width:10px;height:10px;border-radius:50%}
+    .dot.online{background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.2)}
+    .dot.offline{background:#ef4444;opacity:0.5}
+    .chat {display:flex;flex-direction:column;height:64vh}
+    .chat-messages{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+    .msg.user{align-self:flex-end;background:linear-gradient(90deg,#1f2937,#111827);padding:8px 10px;border-radius:8px;color:#fff;max-width:78%}
+    .msg.agent{align-self:flex-start;background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;color:#dfe9ff;max-width:78%}
+    .chat-input{display:flex;gap:8px;padding-top:8px}
+    input[type="text"]{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    button{padding:10px 12px;border-radius:8px;border:none;background:#6366f1;color:#fff;cursor:pointer}
+    @media (max-width:880px){ .grid{grid-template-columns:1fr} .agents-list{max-height:180px} .chat{height:48vh} }
+  </style>
+</head>
+<body>
+  <nav class="topbar">
+    <div class="brand">Nexus AI · Connection</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="agent.html">Agent</a>
+      <a href="agent_manager.html">Agent Manager</a>
+      <a href="settings.html">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <h3 style="margin:0 0 6px 0">Connection Viewport & Agent Chat</h3>
+          <div class="status">A lightweight viewport to monitor connection & chat with agents (local simulated peers)</div>
+        </div>
+        <div class="conn" id="connStatus"><div class="dot offline" id="connDot"></div><div id="connLabel">Disconnected</div></div>
+      </div>
+
+      <div class="grid">
+        <aside>
+          <div style="font-size:12px;color:#9fb0d9;margin-bottom:8px">Available Agents</div>
+          <div class="agents-list" id="agentsList"></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="startConn">Start Sync</button>
+            <button id="stopConn" style="background:#ef4444">Stop</button>
+          </div>
+        </aside>
+
+        <div>
+          <div class="chat">
+            <div class="chat-messages" id="chatMessages"></div>
+            <form id="chatForm" class="chat-input">
+              <input id="chatInput" type="text" placeholder="Message the selected agent..." autocomplete="off">
+              <button type="submit">Send</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/nav.js"></script>
+  <script type="module" src="js/auto_join.js"></script>
+  <script type="module" src="js/connection.js"></script>
+</body>
+</html>

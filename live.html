@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Live — Crypto Trader</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="brand">Crypto Trader</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="strategy.html">Strategy</a>
+      <a href="backtest.html">Backtest</a>
+      <a href="live.html" class="active">Live</a>
+      <a href="agent.html">Agent</a>
+      <a href="connection.html">Connection</a>
+      <a href="settings.html">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Live Simulation</h1>
+      <div class="row">
+        <div class="card-stream">
+          <h4>Simulated Price</h4>
+          <div id="tick" class="big">--</div>
+        </div>
+        <div class="card-stream">
+          <h4>Position</h4>
+          <div id="position">Flat</div>
+        </div>
+      </div>
+
+      <div class="full form-grid">
+        <label>Strategy JSON
+          <textarea id="live-strat" rows="4" placeholder='{"name":"EMA","fast":12,"slow":26}'></textarea>
+        </label>
+        <div class="full">
+          <button id="start-sim" class="btn">Start Simulation</button>
+          <button id="stop-sim" class="btn alt">Stop</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/errors.js"></script>
+  <script type="module" src="js/nav.js"></script>
+  <script type="module" src="js/live.js"></script>
+</body>
+</html>

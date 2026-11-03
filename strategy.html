@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Strategy — Crypto Trader</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="brand">Crypto Trader</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="strategy.html" class="active">Strategy</a>
+      <a href="backtest.html">Backtest</a>
+      <a href="live.html">Live</a>
+      <a href="agent.html">Agent</a>
+      <a href="connection.html">Connection</a>
+      <a href="settings.html">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Strategy Builder</h1>
+      <form id="strategy-form" class="form-grid" autocomplete="off">
+        <label>Strategy name
+          <input name="name" required placeholder="My EMA Crossover">
+        </label>
+        <label>Symbol
+          <input name="symbol" placeholder="BTC/USDT">
+        </label>
+        <label>Timeframe
+          <select name="timeframe">
+            <option>1m</option><option>5m</option><option>15m</option><option>1h</option><option>4h</option>
+          </select>
+        </label>
+        <label>Fast EMA length
+          <input type="number" name="fast" value="12" min="1">
+        </label>
+        <label>Slow EMA length
+          <input type="number" name="slow" value="26" min="1">
+        </label>
+        <label>Risk % per trade
+          <input type="number" name="risk" value="1" min="0.01" step="0.01">
+        </label>
+        <div class="full">
+          <button type="submit" class="btn">Save Strategy</button>
+          <button id="export-strat" type="button" class="btn alt">Export JSON</button>
+        </div>
+      </form>
+
+      <pre id="strategy-output" class="output" aria-live="polite"></pre>
+    </section>
+  </main>
+
+  <script type="module" src="js/errors.js"></script>
+  <script type="module" src="js/nav.js"></script>
+  <script type="module" src="js/strategy.js"></script>
+</body>
+</html>

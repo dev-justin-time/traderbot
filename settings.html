@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Settings — Crypto Trader</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="brand">Crypto Trader</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="strategy.html">Strategy</a>
+      <a href="backtest.html">Backtest</a>
+      <a href="live.html">Live</a>
+      <a href="agent.html">Agent</a>
+      <a href="connection.html">Connection</a>
+      <a href="settings.html" class="active">Settings</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="panel">
+      <h1>Settings</h1>
+      <form id="settings-form" class="form-grid" autocomplete="off">
+        <label>API Provider (simulated)
+          <select name="provider">
+            <option>Simulated</option>
+            <option>ExampleExchange</option>
+          </select>
+        </label>
+        <label>API Key
+          <input name="apiKey" placeholder="sk_...">
+        </label>
+        <label>Default base currency
+          <input name="base" value="USDT">
+        </label>
+        <div class="full">
+          <button type="submit" class="btn">Save</button>
+          <button id="clear-storage" type="button" class="btn alt">Clear Local Data</button>
+        </div>
+      </form>
+      <div id="settings-out" class="output"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/errors.js"></script>
+  <script type="module" src="js/nav.js"></script>
+  <script type="module" src="js/settings.js"></script>
+</body>
+</html>
